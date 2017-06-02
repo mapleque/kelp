@@ -24,7 +24,7 @@ func init() {
 }
 
 // regist a consumer to consumer map
-func RegistConsumer(name string, c Consumer, q *Queue) {
+func (q *Queue) RegistConsumer(name string, c Consumer) {
 	consumers[name] = &ConsumerWrapper{name, c, q, false}
 }
 

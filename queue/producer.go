@@ -5,8 +5,6 @@ import (
 )
 
 // producer interface
-// each producer should have a *Queue property
-// @see UserProducer in producer/user.go
 type Producer interface {
 	Push(q *Queue, taskId string) // fetch data and push into queue
 }
@@ -25,7 +23,7 @@ func init() {
 }
 
 // regist a producer to producer map
-func RegistProducer(name string, p Producer, q *Queue) {
+func (q *Queue) RegistProducer(name string, p Producer) {
 	producers[name] = &ProducerWrapper{name, p, q}
 }
 

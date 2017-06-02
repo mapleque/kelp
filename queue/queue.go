@@ -38,10 +38,10 @@ func Run() {
 func RegistTask(name string, queueSize int, p Producer, c Consumer) *Queue {
 	q := CreateQueue(name, queueSize)
 	if p != nil {
-		RegistProducer(name, p, q)
+		q.RegistProducer(name, p)
 	}
 	if q != nil {
-		RegistConsumer(name, c, q)
+		q.RegistConsumer(name, c)
 	}
 	log.Info("regist", name, q.Size)
 	return q

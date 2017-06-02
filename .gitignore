@@ -1,0 +1,5 @@
+.env
+.idea/
+*.ini
+dist/
+example/runtime/

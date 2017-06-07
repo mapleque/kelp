@@ -98,7 +98,7 @@ func Insert(
 
 // Begin 方法，返回DBTransaction对象
 func (dbq *DBQuery) Begin() *DBTransaction {
-	Debug("transaction begin", dbq.database)
+	Debug("[transaction begin]", "["+dbq.database+"]")
 	trans := &DBTransaction{}
 	conn, err := dbq.conn.Begin()
 	if err != nil {
@@ -114,7 +114,7 @@ func (dbq *DBQuery) Select(
 	sql string,
 	params ...interface{}) []map[string]interface{} {
 
-	Debug("select sql", dbq.database, sql, params)
+	Debug("[select sql]", "["+dbq.database+"]", sql, params)
 	ret, err := dbq.conn.Query(sql, params...)
 	return processQueryRet(sql, ret, err)
 }
@@ -124,7 +124,7 @@ func (dbq *DBQuery) Update(
 	sql string,
 	params ...interface{}) int64 {
 
-	Debug("update sql", dbq.database, sql, params)
+	Debug("[update sql]", "["+dbq.database+"]", sql, params)
 	ret, err := dbq.conn.Exec(sql, params...)
 	return processUpdateRet(sql, ret, err)
 }
@@ -134,7 +134,7 @@ func (dbq *DBQuery) Insert(
 	sql string,
 	params ...interface{}) int64 {
 
-	Debug("insert sql", dbq.database, sql, params)
+	Debug("[insert sql]", "["+dbq.database+"]", sql, params)
 	ret, err := dbq.conn.Exec(sql, params...)
 	return processInsertRet(sql, ret, err)
 }
@@ -144,7 +144,7 @@ func (dbt *DBTransaction) Select(
 	sql string,
 	params ...interface{}) []map[string]interface{} {
 
-	Debug("select sql in transaction", dbt.database, sql, params)
+	Debug("[select sql in transaction]", "["+dbt.database+"]", sql, params)
 	ret, err := dbt.conn.Query(sql, params...)
 	return processQueryRet(sql, ret, err)
 }
@@ -154,7 +154,7 @@ func (dbt *DBTransaction) Update(
 	sql string,
 	params ...interface{}) int64 {
 
-	Debug("update sql in transaction", dbt.database, sql, params)
+	Debug("[update sql in transaction]", "["+dbt.database+"]", sql, params)
 	ret, err := dbt.conn.Exec(sql, params...)
 	return processUpdateRet(sql, ret, err)
 }
@@ -164,14 +164,14 @@ func (dbt *DBTransaction) Insert(
 	sql string,
 	params ...interface{}) int64 {
 
-	Debug("insert sql in transaction", dbt.database, sql, params)
+	Debug("[insert sql in transaction]", "["+dbt.database+"]", sql, params)
 	ret, err := dbt.conn.Exec(sql, params...)
 	return processInsertRet(sql, ret, err)
 }
 
 // Commit 方法，提交事物
 func (dbt *DBTransaction) Commit() {
-	Debug("transaction commit", dbt.database)
+	Debug("[transaction commit]", "["+dbt.database+"]")
 	err := dbt.conn.Commit()
 	if err != nil {
 		Error("db transaction commit faild", dbt.database, err.Error())
@@ -180,7 +180,7 @@ func (dbt *DBTransaction) Commit() {
 
 // Rollback 方法，回滚事物
 func (dbt *DBTransaction) Rollback() {
-	Debug("transaction rollback", dbt.database)
+	Debug("[transaction rollback]", "["+dbt.database+"]")
 	err := dbt.conn.Rollback()
 	if err != nil {
 		Error("db transaction rollback faild", dbt.database, err.Error())

@@ -75,6 +75,7 @@ func (queue *Queue) Push(name string, pid int, data interface{}) *QueueItem {
 		Pid:      pid,
 		Data:     data}
 	queue.push(item)
+	log.Info("[queue]", "push queue", item)
 	return item
 }
 
@@ -102,6 +103,7 @@ func (queue *Queue) Pop() *QueueItem {
 	if queue != nil {
 		qItem := <-queue.stock
 		queue.CurrentStock -= 1
+		log.Info("[queue]", "pop queue", qItem)
 		return qItem
 	}
 	log.Error("[queue]", "error queue is nil")

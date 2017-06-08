@@ -10,6 +10,7 @@ type Queue struct {
 	mux             *sync.RWMutex
 	Size            int
 	stock           chan *QueueItem
+	Name            string
 	CurrentSequence int
 	CurrentStock    int
 	CurrentPid      int
@@ -50,6 +51,7 @@ func RegistTask(name string, queueSize int, p Producer, c Consumer) *Queue {
 func CreateQueue(name string, size int) *Queue {
 	q := &Queue{
 		mux:             new(sync.RWMutex),
+		Name:            name,
 		Size:            size,
 		stock:           make(chan *QueueItem, size),
 		CurrentSequence: 0,

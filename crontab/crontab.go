@@ -42,6 +42,7 @@ func Run() {
 				go func(c *CrontabWrapper) {
 					if triger(t, c.Expr) {
 						c.Crontab.Triger(c.Name)
+						log.Info("[crontab]", "triger", c)
 					}
 				}(c)
 			}

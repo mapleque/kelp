@@ -13,10 +13,7 @@ func Run(host string) {
 	log.Info("monitor starting ...")
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/queue", getQueueInfo)
-	mux.HandleFunc("/producer", getProducerInfo)
-	mux.HandleFunc("/consumer", getConsumerInfo)
-	mux.HandleFunc("/crontab", getCrontabInfo)
+	mux.HandleFunc("/info", getInfo)
 
 	err := http.ListenAndServe(host, mux)
 	if err != nil {
@@ -32,15 +29,10 @@ func formatResponse(res interface{}) []byte {
 	return ret
 }
 
-func getQueueInfo(w http.ResponseWriter, r *http.Request) {
-	w.Write(formatResponse(queue.GetInfo()))
-}
-func getProducerInfo(w http.ResponseWriter, r *http.Request) {
-	w.Write(formatResponse(queue.GetProducerInfo()))
-}
-func getConsumerInfo(w http.ResponseWriter, r *http.Request) {
-	w.Write(formatResponse(queue.GetConsumerInfo()))
-}
-func getCrontabInfo(w http.ResponseWriter, r *http.Request) {
-	w.Write(formatResponse(crontab.GetInfo()))
+func getInfo(w http.ResponseWriter, r *http.Request) {
+	w.Write(formatResponse(map[string]interface{}{
+		"queue":    queue.GetInfo(),
+		"crontab":  crontab.GetInfo(),
+		"producer": queue.GetProducerInfo(),
+		"consumer": queue.GetConsumerInfo()}))
 }

@@ -13,13 +13,13 @@ type Queue struct {
 	Name            string
 	CurrentSequence int
 	CurrentStock    int
-	CurrentPid      int
+	Flag            interface{}
 }
 
 type QueueItem struct {
 	Sequence int
 	Name     string
-	Pid      int
+	Flag     interface{}
 	Data     interface{}
 }
 
@@ -56,7 +56,7 @@ func CreateQueue(name string, size int) *Queue {
 		stock:           make(chan *QueueItem, size),
 		CurrentSequence: 0,
 		CurrentStock:    0,
-		CurrentPid:      0}
+		Flag:            nil}
 	queues[name] = q
 	return q
 }
@@ -70,11 +70,11 @@ func GetInfo() map[string]*Queue {
 	return queues
 }
 
-func (queue *Queue) Push(name string, pid int, data interface{}) *QueueItem {
+func (queue *Queue) Push(name string, flag interface{}, data interface{}) *QueueItem {
 	item := &QueueItem{
 		Sequence: -1,
 		Name:     name,
-		Pid:      pid,
+		Flag:     flag,
 		Data:     data}
 	queue.push(item)
 	log.Info("[queue]", "push queue", item)
@@ -94,7 +94,7 @@ func (queue *Queue) push(qItem *QueueItem) {
 		queue.stock <- qItem
 		queue.CurrentSequence += 1
 		queue.CurrentStock += 1
-		queue.CurrentPid = qItem.Pid
+		queue.Flag = qItem.Flag
 		if overStock {
 			log.Warn("[queue]", "over stock recover on ", qItem)
 		}

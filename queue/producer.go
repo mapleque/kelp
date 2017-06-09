@@ -10,9 +10,9 @@ type Producer interface {
 }
 
 type ProducerWrapper struct {
-	Name     string
-	Producer Producer
-	Queue    *Queue
+	name     string
+	producer Producer
+	queue    *Queue
 }
 
 // a producer map
@@ -27,8 +27,14 @@ func (q *Queue) RegistProducer(name string, p Producer) {
 	producers[name] = &ProducerWrapper{name, p, q}
 }
 
-func GetProducerInfo() map[string]*ProducerWrapper {
-	return producers
+func GetProducerInfo() map[string]interface{} {
+	ret := make(map[string]interface{})
+	for key, pw := range producers {
+		ret[key] = map[string]interface{}{
+			"name":  pw.name,
+			"queue": pw.queue.GetInfo()}
+	}
+	return ret
 }
 
 // run all producer in producer map
@@ -37,9 +43,9 @@ func runProducer() {
 	done := make(chan bool, 1)
 	for _, producer := range producers {
 		go func(p *ProducerWrapper) {
-			log.Info("producer runing", p.Name)
+			log.Info("producer runing", p.name)
 			for {
-				p.Producer.Push(p.Queue, p.Name)
+				p.producer.Push(p.queue, p.name)
 			}
 		}(producer)
 	}

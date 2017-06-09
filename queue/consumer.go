@@ -10,10 +10,10 @@ type Consumer interface {
 }
 
 type ConsumerWrapper struct {
-	Name     string
-	Consumer Consumer
-	Queue    *Queue
-	Pause    bool
+	name     string
+	consumer Consumer
+	queue    *Queue
+	pause    bool
 }
 
 // a consumer map
@@ -28,8 +28,15 @@ func (q *Queue) RegistConsumer(name string, c Consumer) {
 	consumers[name] = &ConsumerWrapper{name, c, q, false}
 }
 
-func GetConsumerInfo() map[string]*ConsumerWrapper {
-	return consumers
+func GetConsumerInfo() map[string]interface{} {
+	ret := make(map[string]interface{})
+	for key, cw := range consumers {
+		ret[key] = map[string]interface{}{
+			"name":  cw.name,
+			"queue": cw.queue.GetInfo(),
+			"pause": cw.pause}
+	}
+	return ret
 }
 
 // run all consumer in comsumer map
@@ -38,19 +45,19 @@ func runConsumer() {
 	done := make(chan bool, 1)
 	for _, consumer := range consumers {
 		go func(c *ConsumerWrapper) {
-			log.Info("consumer runing", c.Name)
+			log.Info("consumer runing", c.name)
 			for {
-				if c.Pause {
-					log.Info("consumer pause", c.Name)
+				if c.pause {
+					log.Info("consumer pause", c.name)
 					break
 				}
-				c.Consumer.Pop(c.Queue, c.Name)
+				c.consumer.Pop(c.queue, c.name)
 			}
 		}(consumer)
 	}
 	<-done
 }
 
-func PauseConsumer(task string) {
-	(consumers[task]).Pause = true
+func pauseConsumer(task string) {
+	(consumers[task]).pause = true
 }

@@ -5,21 +5,20 @@ import (
 )
 
 func TestQueueBase(t *testing.T) {
-	queue := CreateQueue(10)
-	qItem := queue.CreateItem("tmp_table", 0, "some interface")
-	queue.Push(qItem)
-	if queue.currentSequence != 1 {
-		t.Error("error on currentSequence should be 1 but ", queue.currentSequence)
+	queue := CreateQueue("tmp_task", 10)
+	queue.Push("tmp_table", 0, "some interface")
+	if queue.sequence != 1 {
+		t.Error("error on current sequence should be 1 but ", queue.sequence)
 	}
-	if queue.currentStock != 1 {
-		t.Error("error on currentStock should be 1 but ", queue.currentStock)
+	if queue.stock != 1 {
+		t.Error("error on current stock should be 1 but ", queue.stock)
 	}
 
 	oqItem := queue.Pop()
-	if oqItem.sequence != 1 {
-		t.Error("error on item sequence should be 1 but ", oqItem.sequence)
+	if oqItem.Sequence != 1 {
+		t.Error("error on item sequence should be 1 but ", oqItem.Sequence)
 	}
-	if oqItem.table != "tmp_table" || oqItem.pid != 0 || oqItem.data != "some interface" {
-		t.Error("error on item data", oqItem.table, oqItem.pid, oqItem.data)
+	if oqItem.Name != "tmp_table" || oqItem.Flag != 0 || oqItem.Data != "some interface" {
+		t.Error("error on item data", oqItem.Name, oqItem.Flag, oqItem.Data)
 	}
 }

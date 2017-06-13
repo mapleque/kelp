@@ -87,6 +87,14 @@ func (queue *Queue) GetFlag() interface{} {
 	return queue.flag
 }
 
+func (queue *Queue) SetFlag(flag interface{}) {
+	queue.flag = flag
+}
+
+func (queue *Queue) GetSize() int {
+	return queue.size
+}
+
 func (queue *Queue) Push(name string, flag interface{}, data interface{}) *QueueItem {
 	item := &QueueItem{
 		Sequence: -1,
@@ -120,6 +128,8 @@ func (queue *Queue) push(qItem *QueueItem) {
 
 func (queue *Queue) Pop() *QueueItem {
 	if queue != nil {
+		queue.mux.Lock()
+		defer queue.mux.Unlock()
 		qItem := <-queue.channel
 		queue.stock -= 1
 		log.Info("[queue]", "pop queue", qItem)

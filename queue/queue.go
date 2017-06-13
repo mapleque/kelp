@@ -128,9 +128,9 @@ func (queue *Queue) push(qItem *QueueItem) {
 
 func (queue *Queue) Pop() *QueueItem {
 	if queue != nil {
+		qItem := <-queue.channel
 		queue.mux.Lock()
 		defer queue.mux.Unlock()
-		qItem := <-queue.channel
 		queue.stock -= 1
 		log.Info("[queue]", "pop queue", qItem)
 		return qItem

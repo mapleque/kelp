@@ -134,12 +134,16 @@ func (lp *LogPool) log(level int, msg ...interface{}) {
 		if logger.logger != nil &&
 			((logger.maxLevel >= level && logger.minLevel <= level) ||
 				level == ALL) {
-			logger.rotate()
-			logger.mux.Lock()
-			defer logger.mux.Unlock()
-			logger.logger.Println(msg...)
+			logger.logAndRotate(msg)
 		}
 	}
+}
+
+func (logger *Logger) logAndRotate(msg ...interface{}) {
+	logger.mux.Lock()
+	defer logger.mux.Unlock()
+	logger.rotate()
+	logger.logger.Println(msg...)
 }
 
 func (lg *Logger) Debug(msg ...interface{}) {
@@ -171,10 +175,7 @@ func (logger *Logger) log(level int, prefix string, msg ...interface{}) {
 	if logger.logger != nil &&
 		((logger.maxLevel >= level && logger.minLevel <= level) ||
 			level == ALL) {
-		logger.rotate()
-		logger.mux.Lock()
-		defer logger.mux.Unlock()
-		logger.logger.Println(msg...)
+		logger.logAndRotate(msg...)
 	}
 	log.Println(msg...)
 }
@@ -182,8 +183,6 @@ func (logger *Logger) log(level int, prefix string, msg ...interface{}) {
 func (lg *Logger) rotate() {
 	curFilename := lg.path + "/" + lg.filename
 	if fileSize(curFilename) > lg.maxSize {
-		lg.mux.Lock()
-		defer lg.mux.Unlock()
 		lg.suffix = int((lg.suffix + 1) % lg.maxNumber)
 		if lg.logFile != nil {
 			lg.logFile.Close()

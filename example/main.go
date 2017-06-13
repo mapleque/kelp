@@ -20,14 +20,14 @@ type SimpleImpl struct{}
 func (p SimpleImpl) Push(q *queue.Queue, task string) {
 	for i := 0; i < 5+rand.Intn(5); i++ {
 		qItem := q.Push(task, i, "item data")
-		log.Debug("push", qItem)
+		log.Info("push", qItem)
 	}
 	time.Sleep(time.Duration(rand.Intn(2000))*time.Millisecond + 7*time.Second)
 }
 
 func (c SimpleImpl) Pop(q *queue.Queue, task string) {
 	qItem := q.Pop()
-	log.Debug("pop", qItem)
+	log.Info("pop", qItem)
 	time.Sleep(time.Duration(rand.Intn(2000))*time.Millisecond + time.Second)
 }
 
@@ -70,7 +70,7 @@ func main() {
 	impl := SimpleImpl{}
 	queue.RegistTask("simple1", 1, impl, impl)
 	queue.RegistTask("simple10", 10, impl, impl)
-	queue.RegistTask("simple100", 100, impl, impl)
+	queue.RegistTask("simple100", 10000, impl, impl)
 	crontab.Regist("* * * * *", "simple", impl)
 
 	// start service

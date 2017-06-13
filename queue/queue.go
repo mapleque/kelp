@@ -113,9 +113,9 @@ func (queue *Queue) push(qItem *QueueItem) {
 			overStock = true
 			log.Warn("[queue]", "waiting ..., data over stock on ", qItem)
 		}
+		queue.channel <- qItem
 		queue.mux.Lock()
 		defer queue.mux.Unlock()
-		queue.channel <- qItem
 		queue.sequence += 1
 		queue.stock += 1
 		queue.flag = qItem.Flag

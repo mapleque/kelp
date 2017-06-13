@@ -97,7 +97,7 @@ func (queue *Queue) GetSize() int {
 
 func (queue *Queue) Push(name string, flag interface{}, data interface{}) *QueueItem {
 	item := &QueueItem{
-		Sequence: -1,
+		Sequence: queue.sequence + 1,
 		Name:     name,
 		Flag:     flag,
 		Data:     data}
@@ -115,7 +115,6 @@ func (queue *Queue) push(qItem *QueueItem) {
 		}
 		queue.mux.Lock()
 		defer queue.mux.Unlock()
-		qItem.Sequence = queue.sequence + 1
 		queue.channel <- qItem
 		queue.sequence += 1
 		queue.stock += 1

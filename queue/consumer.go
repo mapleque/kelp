@@ -58,6 +58,6 @@ func runConsumer() {
 	<-done
 }
 
-func pauseConsumer(task string) {
+func PauseConsumer(task string) {
 	(consumers[task]).pause = true
 }

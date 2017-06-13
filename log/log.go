@@ -135,8 +135,8 @@ func (lp *LogPool) log(level int, msg ...interface{}) {
 			((logger.maxLevel >= level && logger.minLevel <= level) ||
 				level == ALL) {
 			logger.rotate()
-			logger.mux.RLock()
-			defer logger.mux.RUnlock()
+			logger.mux.Lock()
+			defer logger.mux.Unlock()
 			logger.logger.Println(msg...)
 		}
 	}
@@ -172,8 +172,8 @@ func (logger *Logger) log(level int, prefix string, msg ...interface{}) {
 		((logger.maxLevel >= level && logger.minLevel <= level) ||
 			level == ALL) {
 		logger.rotate()
-		logger.mux.RLock()
-		defer logger.mux.RUnlock()
+		logger.mux.Lock()
+		defer logger.mux.Unlock()
 		logger.logger.Println(msg...)
 	}
 	log.Println(msg...)

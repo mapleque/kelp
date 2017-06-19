@@ -2,11 +2,11 @@ package util
 
 import (
 	"bufio"
+	"io"
 	"os"
 	"strings"
 
 	"github.com/kelp/log"
-	"io"
 )
 
 func ReadFile(absoluteFileName string) []string {

@@ -96,12 +96,11 @@ func baseLog(level int, prefix string, msg ...interface{}) {
 	if Log != nil {
 		Log.log(level, msg...)
 	}
-	log.Println(msg...)
 }
 
 func Debug(msg ...interface{}) {
 	baseLog(DEBUG, "[DEBUG]", msg...)
-	Callstack()
+	Callstack(DEBUG)
 }
 
 func Info(msg ...interface{}) {
@@ -110,31 +109,39 @@ func Info(msg ...interface{}) {
 
 func Warn(msg ...interface{}) {
 	baseLog(WARN, "[WARN]", msg...)
-	Callstack()
+	Callstack(WARN)
 }
 
 func Error(msg ...interface{}) {
 	baseLog(ERROR, "[ERROR]", msg...)
-	Callstack()
+	Callstack(ERROR)
 }
 
 func Fatal(msg ...interface{}) {
 	baseLog(FATAL, "[FATAL]", msg...)
-	Callstack()
+	Callstack(FATAL)
 	os.Exit(1)
 }
 
-func Callstack() {
+func Callstack(level int) {
 	msg := getCallstack()
-	baseLog(ALL, "", msg...)
+	baseLog(level, "", msg...)
+}
+
+func (lp *LogPool) Get(name string) *Logger {
+	return lp.Pool[name]
 }
 
 func (lp *LogPool) log(level int, msg ...interface{}) {
-	for _, logger := range lp.Pool {
-		if logger.logger != nil &&
-			((logger.maxLevel >= level && logger.minLevel <= level) ||
-				level == ALL) {
-			logger.logAndRotate(msg)
+	if len(lp.Pool) < 1 {
+		log.Println(msg...)
+	} else {
+		for _, logger := range lp.Pool {
+			if logger.logger != nil &&
+				((logger.maxLevel >= level && logger.minLevel <= level) ||
+					level == ALL) {
+				logger.logAndRotate(msg...)
+			}
 		}
 	}
 }
@@ -148,7 +155,7 @@ func (logger *Logger) logAndRotate(msg ...interface{}) {
 
 func (lg *Logger) Debug(msg ...interface{}) {
 	lg.log(DEBUG, "[DEBUG]", msg...)
-	lg.Callstack()
+	lg.Callstack(DEBUG)
 }
 
 func (lg *Logger) Info(msg ...interface{}) {
@@ -157,17 +164,17 @@ func (lg *Logger) Info(msg ...interface{}) {
 
 func (lg *Logger) Warn(msg ...interface{}) {
 	lg.log(WARN, "[WARN]", msg...)
-	lg.Callstack()
+	lg.Callstack(WARN)
 }
 
 func (lg *Logger) Error(msg ...interface{}) {
 	lg.log(ERROR, "[ERROR]", msg...)
-	lg.Callstack()
+	lg.Callstack(ERROR)
 }
 
-func (lg *Logger) Callstack() {
+func (lg *Logger) Callstack(level int) {
 	msg := getCallstack()
-	lg.log(ALL, "", msg...)
+	lg.log(level, "", msg...)
 }
 
 func (logger *Logger) log(level int, prefix string, msg ...interface{}) {
@@ -177,7 +184,6 @@ func (logger *Logger) log(level int, prefix string, msg ...interface{}) {
 			level == ALL) {
 		logger.logAndRotate(msg...)
 	}
-	log.Println(msg...)
 }
 
 func (lg *Logger) rotate() {

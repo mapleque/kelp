@@ -2,8 +2,6 @@ package queue
 
 import (
 	"sync"
-
-	"github.com/kelp/log"
 )
 
 type Queue struct {

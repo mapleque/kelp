@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/kelp/crontab"
-	"github.com/kelp/log"
 	"github.com/kelp/queue"
 )
 
@@ -17,7 +16,7 @@ func Run(host string) {
 
 	err := http.ListenAndServe(host, mux)
 	if err != nil {
-		log.Fatal("monitor start faild", err.Error())
+		panic("monitor start faild " + err.Error())
 	}
 }
 

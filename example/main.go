@@ -43,6 +43,9 @@ func initLog() {
 		conf.Int64("log.MAX_SIZE"),
 		conf.Int("log.MAX_LEVEL"),
 		conf.Int("log.MIN_LEVEL"))
+	db.SetLogger(log.Log)
+	queue.SetLogger(log.Log)
+	crontab.SetLogger(log.Log)
 }
 
 func initDB() {

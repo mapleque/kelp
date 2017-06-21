@@ -1,10 +1,10 @@
-package db
+package crontab
 
 import (
 	syslog "log"
 )
 
-// 实现一个简单的logger，记录相关信息
+// 实现一个简单的logger，用户记录相关信息
 // 用户可以通过SetLogger方法重定向log输出
 // logger只要实现分级输出方法即可
 

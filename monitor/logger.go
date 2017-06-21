@@ -1,4 +1,4 @@
-package db
+package monitor
 
 import (
 	syslog "log"

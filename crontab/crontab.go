@@ -4,8 +4,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/kelp/log"
 )
 
 type Crontab interface {

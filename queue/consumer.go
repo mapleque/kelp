@@ -1,9 +1,5 @@
 package queue
 
-import (
-	"github.com/kelp/log"
-)
-
 // consumer interface
 type Consumer interface {
 	Pop(q *Queue, taskId string) // to consume

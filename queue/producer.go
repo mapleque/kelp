@@ -1,9 +1,5 @@
 package queue
 
-import (
-	"github.com/kelp/log"
-)
-
 // producer interface
 type Producer interface {
 	Push(q *Queue, taskId string) // fetch data and push into queue

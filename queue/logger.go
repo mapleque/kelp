@@ -1,4 +1,4 @@
-package db
+package queue
 
 import (
 	syslog "log"

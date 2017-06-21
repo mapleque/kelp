@@ -132,6 +132,31 @@ func (lp *LogPool) Get(name string) *Logger {
 	return lp.Pool[name]
 }
 
+func (lp *LogPool) Debug(msg ...interface{}) {
+	baseLog(DEBUG, "[DEBUG]", msg...)
+	Callstack(DEBUG)
+}
+
+func (lp *LogPool) Info(msg ...interface{}) {
+	baseLog(INFO, "[INFO]", msg...)
+}
+
+func (lp *LogPool) Warn(msg ...interface{}) {
+	baseLog(WARN, "[WARN]", msg...)
+	Callstack(WARN)
+}
+
+func (lp *LogPool) Error(msg ...interface{}) {
+	baseLog(ERROR, "[ERROR]", msg...)
+	Callstack(ERROR)
+}
+
+func (lp *LogPool) Fatal(msg ...interface{}) {
+	baseLog(FATAL, "[FATAL]", msg...)
+	Callstack(FATAL)
+	os.Exit(1)
+}
+
 func (lp *LogPool) log(level int, msg ...interface{}) {
 	if len(lp.Pool) < 1 {
 		log.Println(msg...)

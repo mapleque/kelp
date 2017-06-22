@@ -80,6 +80,11 @@ func main() {
 	log.Info("start service ...")
 	done := make(chan bool, 1)
 
+	monitor.Observe("queue", queue.GetQueueContainer())
+	monitor.Observe("crontab", crontab.GetCrontabContainer())
+	monitor.Observe("producer", queue.GetProducerContainer())
+	monitor.Observe("consumer", queue.GetConsumerContainer())
+
 	go queue.Run()
 	go crontab.Run()
 	go monitor.Run(conf.Get("monitor.HOST"))

@@ -11,21 +11,29 @@ type ProducerWrapper struct {
 	queue    *Queue
 }
 
-// a producer map
-var producers map[string]*ProducerWrapper
+type ProducerContainer struct {
+	producers map[string]*ProducerWrapper
+}
+
+var pc *ProducerContainer
 
 func init() {
-	producers = make(map[string]*ProducerWrapper)
+	pc = &ProducerContainer{producers: make(map[string]*ProducerWrapper)}
+}
+
+func GetProducerContainer() *ProducerContainer {
+	return pc
 }
 
 // regist a producer to producer map
 func (q *Queue) RegistProducer(name string, p Producer) {
-	producers[name] = &ProducerWrapper{name, p, q}
+	pc.producers[name] = &ProducerWrapper{name, p, q}
 }
 
-func GetProducerInfo() map[string]interface{} {
+// implement monitor.Observable
+func (pcp *ProducerContainer) GetInfo() interface{} {
 	ret := make(map[string]interface{})
-	for key, pw := range producers {
+	for key, pw := range pcp.producers {
 		ret[key] = map[string]interface{}{
 			"name":  pw.name,
 			"queue": pw.queue.GetInfo()}
@@ -37,7 +45,7 @@ func GetProducerInfo() map[string]interface{} {
 func runProducer() {
 	log.Info("producer starting ...")
 	done := make(chan bool, 1)
-	for _, producer := range producers {
+	for _, producer := range pc.producers {
 		go func(p *ProducerWrapper) {
 			log.Info("producer runing", p.name)
 			for {

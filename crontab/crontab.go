@@ -16,18 +16,26 @@ type CrontabWrapper struct {
 	Expr    string
 }
 
-var crontabs map[string]*CrontabWrapper
+type CrontabContainer struct {
+	crontabs map[string]*CrontabWrapper
+}
+
+var cc *CrontabContainer
 
 func init() {
-	crontabs = make(map[string]*CrontabWrapper)
+	cc = &CrontabContainer{crontabs: make(map[string]*CrontabWrapper)}
+}
+
+func GetCrontabContainer() *CrontabContainer {
+	return cc
 }
 
 func Regist(expr, name string, crontab Crontab) {
-	crontabs[name] = &CrontabWrapper{name, crontab, expr}
+	cc.crontabs[name] = &CrontabWrapper{name, crontab, expr}
 }
 
-func GetInfo() map[string]*CrontabWrapper {
-	return crontabs
+func (ccp *CrontabContainer) GetInfo() interface{} {
+	return ccp.crontabs
 }
 
 func Run() {
@@ -36,7 +44,7 @@ func Run() {
 	ticker := time.NewTicker(time.Second)
 	go func() {
 		for t := range ticker.C {
-			for _, c := range crontabs {
+			for _, c := range cc.crontabs {
 				go func(c *CrontabWrapper) {
 					if triger(t, c.Expr) {
 						c.Crontab.Triger(c.Name)

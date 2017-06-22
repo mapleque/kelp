@@ -21,10 +21,14 @@ type QueueItem struct {
 	Data     interface{}
 }
 
-var queues map[string]*Queue
+type QueueContainer struct {
+	queues map[string]*Queue
+}
+
+var qc *QueueContainer
 
 func init() {
-	queues = make(map[string]*Queue)
+	qc = &QueueContainer{queues: make(map[string]*Queue)}
 }
 
 func Run() {
@@ -55,24 +59,29 @@ func CreateQueue(name string, size int) *Queue {
 		sequence: 0,
 		stock:    0,
 		flag:     nil}
-	queues[name] = q
+	qc.queues[name] = q
 	return q
 }
 
+func GetQueueContainer() *QueueContainer {
+	return qc
+}
+
 func GetQueue(name string) (*Queue, bool) {
-	queue, ok := queues[name]
+	queue, ok := qc.queues[name]
 	return queue, ok
 }
 
-func GetInfo() map[string]interface{} {
+// implement monitor.Observable
+func (qcp *QueueContainer) GetInfo() interface{} {
 	ret := make(map[string]interface{})
-	for key, queue := range queues {
+	for key, queue := range qcp.queues {
 		ret[key] = queue.GetInfo()
 	}
 	return ret
 }
 
-func (queue *Queue) GetInfo() map[string]interface{} {
+func (queue *Queue) GetInfo() interface{} {
 	return map[string]interface{}{
 		"size":     queue.size,
 		"name":     queue.name,

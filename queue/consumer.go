@@ -12,21 +12,29 @@ type ConsumerWrapper struct {
 	pause    bool
 }
 
-// a consumer map
-var consumers map[string]*ConsumerWrapper
+type ConsumerContainer struct {
+	consumers map[string]*ConsumerWrapper
+}
+
+var cc *ConsumerContainer
 
 func init() {
-	consumers = make(map[string]*ConsumerWrapper)
+	cc = &ConsumerContainer{consumers: make(map[string]*ConsumerWrapper)}
+}
+
+func GetConsumerContainer() *ConsumerContainer {
+	return cc
 }
 
 // regist a consumer to consumer map
 func (q *Queue) RegistConsumer(name string, c Consumer) {
-	consumers[name] = &ConsumerWrapper{name, c, q, false}
+	cc.consumers[name] = &ConsumerWrapper{name, c, q, false}
 }
 
-func GetConsumerInfo() map[string]interface{} {
+// implement monitor.Observable
+func (ccp *ConsumerContainer) GetInfo() interface{} {
 	ret := make(map[string]interface{})
-	for key, cw := range consumers {
+	for key, cw := range ccp.consumers {
 		ret[key] = map[string]interface{}{
 			"name":  cw.name,
 			"queue": cw.queue.GetInfo(),
@@ -39,7 +47,7 @@ func GetConsumerInfo() map[string]interface{} {
 func runConsumer() {
 	log.Info("consumer starting ...")
 	done := make(chan bool, 1)
-	for _, consumer := range consumers {
+	for _, consumer := range cc.consumers {
 		go func(c *ConsumerWrapper) {
 			log.Info("consumer runing", c.name)
 			for {
@@ -55,5 +63,5 @@ func runConsumer() {
 }
 
 func PauseConsumer(task string) {
-	(consumers[task]).pause = true
+	(cc.consumers[task]).pause = true
 }

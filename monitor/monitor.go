@@ -3,10 +3,21 @@ package monitor
 import (
 	"encoding/json"
 	"net/http"
-
-	"github.com/kelp/crontab"
-	"github.com/kelp/queue"
 )
+
+type Observable interface {
+	GetInfo() interface{}
+}
+
+var observeList map[string]Observable
+
+func init() {
+	observeList = make(map[string]Observable)
+}
+
+func Observe(name string, subject Observable) {
+	observeList[name] = subject
+}
 
 func Run(host string) {
 	log.Info("monitor starting ...")
@@ -29,9 +40,9 @@ func formatResponse(res interface{}) []byte {
 }
 
 func getInfo(w http.ResponseWriter, r *http.Request) {
-	w.Write(formatResponse(map[string]interface{}{
-		"queue":    queue.GetInfo(),
-		"crontab":  crontab.GetInfo(),
-		"producer": queue.GetProducerInfo(),
-		"consumer": queue.GetConsumerInfo()}))
+	ret := make(map[string]interface{})
+	for name, subject := range observeList {
+		ret[name] = subject.GetInfo()
+	}
+	w.Write(formatResponse(ret))
 }

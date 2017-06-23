@@ -1,5 +1,7 @@
 # Kelp
+一个完成后端框架，提供队列，定时任务，web服务，数据库，日志，配置文件，监控等模块支持。
 
+其中每个模块都独立封装，可以单独使用。
 ## 部署
 
 1. 依赖第三方mysql驱动
@@ -9,27 +11,7 @@ go get github.com/go-sql-driver/mysql
 1. clone本项目到gopath/github.com/下
 1. 参考example实现自己的业务逻辑
 
-## 设计
-```
-                                    queue
-                                     | |
-                prducer              | |
- create task --->| push data         | |
-                 +------------------>| |
-                                     | |        consumer
-                                     | | pop data   |
-                                     | |----------->|
-                                     | |            +---> do something
-                                     | |
-
-
-                 regist crontab task
-                          | |
-ticker event second ----->| | triger
-                          | |--------> run task
-```
-
-### Queue
+## Queue
 队列模块实现了一个非阻塞异步队列生产消费机制，对于一个队列，需要分别指定他的Producer和Consumer。
 Producer和Consumer要实现对应的接口方法```Push```和```Pop```。参考```example/main.go```。
 可以通过下面的方式初始化一个队列：
@@ -51,7 +33,7 @@ go q.Run()
 
 对于已经创建的queue对象，可以通过GetQueue方法获取对应指针。
 
-### Crontab
+## Crontab
 
 后台任务模块提供了定时执行任务机制，任务周期表达式参考crontab的标准，任务执行者需要实现Crontab对应的接口方法```Triger```。参考```example/main.go```。
 可以通过下面的方式初始化后台任务：
@@ -60,44 +42,34 @@ crontab.Regist("* * * * *", "crontab_name", crontabImpl)
 go crontab.Run()
 ```
 
-### Monitor
+## Monitor
 
 监控模块可以通过开启的指定端口监控系统状态。
 
-在系统启动时加入下面方法调用，即可启动monitor：
+可以被监控的模块都实现了```monitor.Observable```接口。
+注册这些模块就可以通过监控接口获得运行时状态数据。
 ```
+monitor.Observe("queue", queue.GetQueueContainer())
+monitor.Observe("crontab", crontab.GetCrontabContainer())
+monitor.Observe("producer", queue.GetProducerContainer())
+monitor.Observe("consumer", queue.GetConsumerContainer())
 monitor.Run("127.0.0.1:9998")
 ```
-monitor目前提供了下面功能，通过http协议访问即可：
-#### 查看队列
 
-```
-request url : /queue
-response : {}
-```
+## Web
 
-#### 查看生产者
-
+web模块提供了一个http的服务框架，通过注册路由和对应的handler方法，可以实现http服务。
 ```
-request url : /producer
-response : {}
-```
+// implement a handler
+func helloHandler(context *web.Context) {
+	context.Data = "hello"
+}
 
-#### 查看消费者
+// ...
 
+server := web.New("127.0.0.1:9000")
+server.RegistHandler("/hello", helloHandler)
 ```
-request url : /consumer
-response : {}
-```
-
-#### 查看后台任务
-
-```
-request url : /crontab
-response : {}
-```
-
-至此，你已经可以开始使用本框架工作了，下面提供了一些扩展模块的封装，请按需使用。
 
 ## Config
 

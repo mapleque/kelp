@@ -5,8 +5,6 @@ import (
 	"io"
 	"os"
 	"strings"
-
-	"github.com/kelp/log"
 )
 
 func ReadFile(absoluteFileName string) []string {

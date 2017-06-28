@@ -3,8 +3,6 @@ package util
 import (
 	"fmt"
 	"strconv"
-
-	"github.com/kelp/log"
 )
 
 // 类型转换，任何类型转成int

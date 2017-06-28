@@ -7,8 +7,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-
-	. "github.com/kelp/log"
 )
 
 type IniConfiger struct {
@@ -37,7 +35,7 @@ func (config *IniConfiger) load() {
 	file, err := os.Open(config.file)
 	defer file.Close()
 	if err != nil {
-		Fatal("config file is not exist", config.file)
+		panic("config file is not exist " + config.file)
 	}
 	buf := bufio.NewReader(file)
 	currentGroup := _DEFAULT_GROUP
@@ -69,13 +67,13 @@ func (config *IniConfiger) load() {
 			}
 		}
 	}
-	Info("load config file finish", config.file)
+	log.Info("load config file finish", config.file)
 }
 
 // key accept group.element
 func (config *IniConfiger) Get(key string) string {
 	if len(key) < 1 {
-		Error("config key is empty")
+		log.Error("config key is empty")
 		return ""
 	}
 	config.mux.RLock()
@@ -86,14 +84,14 @@ func (config *IniConfiger) Get(key string) string {
 			return v
 		}
 	}
-	Error("config property not exist", key)
+	log.Error("config property not exist", key)
 	return ""
 }
 
 // key accept group.element
 func (config *IniConfiger) Set(key, value string) {
 	if len(key) < 1 {
-		Error("config key is empty")
+		log.Error("config key is empty")
 		return
 	}
 	config.mux.Lock()
@@ -107,7 +105,7 @@ func (config *IniConfiger) set(key, value string) {
 		config.data[group] = make(map[string]string)
 	}
 	config.data[group][element] = value
-	Info("set config", group+","+key+"="+value)
+	log.Info("set config", group+","+key+"="+value)
 }
 
 func (config *IniConfiger) Bool(key string) bool {
@@ -118,28 +116,28 @@ func (config *IniConfiger) Bool(key string) bool {
 	case "0", "false", "n", "off", "no":
 		return false
 	default:
-		Error("invalid bool config item", config.file, key, ret)
+		log.Error("invalid bool config item", config.file, key, ret)
 	}
 	return false
 }
 func (config *IniConfiger) Int(key string) int {
 	ret, err := strconv.Atoi(config.Get(key))
 	if err != nil {
-		Error("invalid int config item", config.file, key, err.Error())
+		log.Error("invalid int config item", config.file, key, err.Error())
 	}
 	return ret
 }
 func (config *IniConfiger) Int64(key string) int64 {
 	ret, err := strconv.ParseInt(config.Get(key), 10, 64)
 	if err != nil {
-		Error("invalid int64 config item", config.file, key, err.Error())
+		log.Error("invalid int64 config item", config.file, key, err.Error())
 	}
 	return ret
 }
 func (config *IniConfiger) Float(key string) float64 {
 	ret, err := strconv.ParseFloat(config.Get(key), 64)
 	if err != nil {
-		Error("invalid float config item", config.file, key, err.Error())
+		log.Error("invalid float config item", config.file, key, err.Error())
 	}
 	return ret
 }

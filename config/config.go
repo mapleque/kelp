@@ -1,9 +1,5 @@
 package config
 
-import (
-	. "github.com/kelp/log"
-)
-
 type CONFIG_MODE int32
 
 const (
@@ -32,7 +28,6 @@ func init() {
 	if Config != nil {
 		return
 	}
-	Info("init config module...")
 	Config = &ConfigPool{}
 	Config.Pool = make(map[string]Configer)
 }
@@ -42,7 +37,7 @@ func Use(name string) Configer {
 }
 
 func AddConfiger(mode CONFIG_MODE, name, file string) {
-	Info("add configer", mode, file)
+	log.Info("add configer", mode, file)
 	var configer Configer
 	switch mode {
 	case INI:
@@ -56,7 +51,8 @@ func AddConfiger(mode CONFIG_MODE, name, file string) {
 		configer = nil
 	}
 	if configer == nil {
-		Fatal("error configer", mode, name, file)
+		log.Error("error configer", mode, name, file)
+		panic("configer is nil")
 	}
 	Config.Pool[name] = configer
 }

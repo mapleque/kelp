@@ -5,7 +5,7 @@ import (
 )
 
 func TestMysql(t *testing.T) {
-	DB.Pool = make(map[string]*DBQuery)
+	db.pool = make(map[string]*DBQuery)
 	AddDB("test",
 		"www:www@tcp(127.0.0.1:3306)/test?charset=utf8",
 		1, 1,
@@ -34,5 +34,23 @@ func TestMysql(t *testing.T) {
 	res := Select("test", "SELECT * FROM test_mysql WHERE id = 1")
 	if len(res) != 1 || res[0]["value"] != "test_other" {
 		t.Fatal("update result wrong", res)
+	}
+
+	trans := Begin("test")
+	trans.Insert("INSERT INTO test_mysql (value) VALUES (?)", "test_trans")
+	trans.Update("UPDATE test_mysql SET value = ? WHERE id = 1 LIMIT 1", "test_trans")
+	trans.Rollback()
+	res = Select("test", "SELECT * FROM test_mysql WHERE id = 1")
+	if len(res) != 1 || res[0]["value"] != "test_other" {
+		t.Fatal("trans rollback result wrong", res)
+	}
+
+	trans = Begin("test")
+	trans.Insert("INSERT INTO test_mysql (value) VALUES (?)", "test_trans")
+	trans.Update("UPDATE test_mysql SET value = ? WHERE id = 1 LIMIT 1", "test_trans")
+	trans.Commit()
+	res = Select("test", "SELECT * FROM test_mysql ORDER BY id")
+	if len(res) != 2 || res[0]["value"] != "test_trans" {
+		t.Fatal("trans commit result wrong", res)
 	}
 }

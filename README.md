@@ -173,6 +173,19 @@ if ret < 0 {
 }
 ```
 
+此外，数据库模块还支持自定义open connection方法：
+```
+db.SetOpenFunc(func(dsn string) db.Connector{
+    // implement your open func
+    // 返回的对象需要实现db.Connector
+})
+```
+这样就可以改变connection对象，如果有需要其他包的connection对象，这里可以通过get获取到
+```
+conn := db.Use("db_name").GetConn() // return interface{} need type assertion
+transConn := db.Begin("db_name").GetConn() // return interface{} need type assertion
+```
+
 ## Log
 
 日志模块支持日志定制输出。

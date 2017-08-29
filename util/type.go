@@ -98,12 +98,16 @@ func String(param interface{}) string {
 		return strconv.Itoa(ret)
 	case int64:
 		return strconv.FormatInt(ret, 10)
+	case float64:
+		return strconv.FormatFloat(ret, 'f', -1, 64)
 	case bool:
 		if ret {
 			return "1"
 		} else {
 			return "0"
 		}
+	case nil:
+		return ""
 	default:
 		log.Error("param type change to string error",
 			ret, fmt.Sprintf("%T", ret))

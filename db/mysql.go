@@ -7,31 +7,62 @@ import (
 
 // DBPool 类型， 是一个database容器，用于存储服务可能用到的所有db连接池
 type DBPool struct {
-	Pool map[string]*DBQuery
+	pool     map[string]*DBQuery
+	openFunc func(string) Connector
+}
+
+type Connector interface {
+	Begin() (*sql.Tx, error)
+	Query(string, ...interface{}) (*sql.Rows, error)
+	Exec(string, ...interface{}) (sql.Result, error)
+	Ping() error
+	Close() error
+	SetMaxOpenConns(int)
+	SetMaxIdleConns(int)
+}
+
+type TransConnector interface {
+	Commit() error
+	Rollback() error
+	Query(string, ...interface{}) (*sql.Rows, error)
+	Exec(string, ...interface{}) (sql.Result, error)
 }
 
 // DBQuery 对象，用于直接查询或执行
 type DBQuery struct {
 	database string
-	conn     *sql.DB
+	conn     Connector
 }
 
 // DBTransaction 对象，用于事物查询或执行
 type DBTransaction struct {
 	database string
-	conn     *sql.Tx
+	conn     TransConnector
 }
 
-// DB 全局变量，允许用户可以在任何一个方法中调用并操作数据库
-var DB *DBPool
+// db全局私有变量，用于保持连接池
+var db *DBPool
 
 func init() {
-	if DB != nil {
+	if db != nil {
 		return
 	}
 	log.Info("init db module...")
-	DB = &DBPool{}
-	DB.Pool = make(map[string]*DBQuery)
+	db = &DBPool{}
+	db.pool = make(map[string]*DBQuery)
+	db.openFunc = func(dsn string) Connector {
+		dbConn, err := sql.Open("mysql", dsn)
+		if err != nil {
+			log.Error("can not open db", dsn, err.Error())
+			panic(err.Error())
+		}
+		return dbConn
+	}
+}
+
+// 可以重定向打开db的方法
+func SetOpenFunc(openFunc func(dsn string) Connector) {
+	db.openFunc = openFunc
 }
 
 /**
@@ -39,14 +70,8 @@ func init() {
  */
 func AddDB(name, dsn string, maxOpenConns, maxIdleConns int) {
 	log.Info("add db", name, dsn)
-	dbConn, err := sql.Open("mysql", dsn)
-	if err != nil {
-		log.Error("can not open db", dsn, err.Error())
-		panic(err.Error())
-	}
-	//	defer db.Close()
-	// 如果这里defer，这里刚添加完的db就会被关掉
-	err = dbConn.Ping()
+	dbConn := db.openFunc(dsn)
+	err := dbConn.Ping()
 	if err != nil {
 		log.Error("can not ping db", dsn, err.Error())
 		panic(err.Error()) // 直接panic，让server无法启动
@@ -56,17 +81,17 @@ func AddDB(name, dsn string, maxOpenConns, maxIdleConns int) {
 	dbQuery := &DBQuery{}
 	dbQuery.conn = dbConn
 	dbQuery.database = name
-	DB.Pool[name] = dbQuery
+	db.pool[name] = dbQuery
 }
 
-// UserDB 方法，返回DBQuery对象
-func UseDB(database string) *DBQuery {
-	return DB.Pool[database]
+// User 方法，返回DBQuery对象
+func Use(database string) *DBQuery {
+	return db.pool[database]
 }
 
 // Begin 方法，返回DBTransaction对象
 func Begin(database string) *DBTransaction {
-	return DB.Pool[database].Begin()
+	return db.pool[database].Begin()
 }
 
 // Select 方法，返回查询结果数组
@@ -74,7 +99,7 @@ func Select(
 	database, sql string,
 	params ...interface{}) []map[string]interface{} {
 
-	return DB.Pool[database].Select(sql, params...)
+	return db.pool[database].Select(sql, params...)
 }
 
 // Update 方法，返回受影响行数
@@ -82,7 +107,7 @@ func Update(
 	database, sql string,
 	params ...interface{}) int64 {
 
-	return DB.Pool[database].Update(sql, params...)
+	return db.pool[database].Update(sql, params...)
 }
 
 // Execute 方法，返回受影响行数
@@ -90,7 +115,7 @@ func Execute(
 	database, sql string,
 	params ...interface{}) int64 {
 
-	return DB.Pool[database].Execute(sql, params...)
+	return db.pool[database].Execute(sql, params...)
 }
 
 // Insert 方法，返回插入id
@@ -98,7 +123,12 @@ func Insert(
 	database, sql string,
 	params ...interface{}) int64 {
 
-	return DB.Pool[database].Insert(sql, params...)
+	return db.pool[database].Insert(sql, params...)
+}
+
+// 获取DBQuery的connection
+func (dbq *DBQuery) GetConn() Connector {
+	return dbq.conn
 }
 
 // Begin 方法，返回DBTransaction对象
@@ -152,6 +182,11 @@ func (dbq *DBQuery) Insert(
 	log.Debug("[insert sql]", "["+dbq.database+"]", sql, params)
 	ret, err := dbq.conn.Exec(sql, params...)
 	return processInsertRet(sql, ret, err)
+}
+
+// 获取transaction的connection
+func (dbt *DBTransaction) GetConn() TransConnector {
+	return dbt.conn
 }
 
 // Select 方法，返回查询结果数组
@@ -269,7 +304,8 @@ func processRows(rows *sql.Rows) ([]map[string]interface{}, error) {
 	for i := range values {
 		scanArgs[i] = &values[i]
 	}
-	var list []map[string]interface{}
+	list := []map[string]interface{}{}
+	// 这里需要初始化为空数组，否则在查询结果为空的时候，返回的会是一个未初始化的指针
 	for rows.Next() {
 		err = rows.Scan(scanArgs...)
 		if err != nil {
@@ -279,7 +315,7 @@ func processRows(rows *sql.Rows) ([]map[string]interface{}, error) {
 		ret = make(map[string]interface{})
 		for i, col := range values {
 			if col == nil {
-				ret[columns[i]] = "null"
+				ret[columns[i]] = nil
 			} else {
 				switch val := (*scanArgs[i].(*interface{})).(type) {
 				case []byte:

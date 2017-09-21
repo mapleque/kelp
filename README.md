@@ -114,7 +114,7 @@ go server.Run()
 
 ## Config
 
-配置文件加载模块支持读取配置。
+配置文件加载模块读取配置。
 ```
 ;config_file.ini
 [section]
@@ -123,11 +123,20 @@ KEY=xxx
 
 ```
 // init a configer
-config.AddConfiger(config.INI, "config_name", "config_file_path")
+config.Add(config.INI, "config_name", "config_file_path")
 
 // read a configer
-conf := config.Use("config_name")
-some_config_value := conf.Get("section.KEY")
+configer := config.Use("config_name")
+some_config_value := configer.Get("section.KEY")
+```
+
+此外，如果在系统中只需要读取一个配置文件，还可以使用简化的方法
+```
+// init default configer
+configer := config.InitDefault(config.INI, "ini", "./config_file.ini", "the config file path param --ini")
+
+// get configer in other scope
+configer := config.Default()
 ```
 
 ## Database

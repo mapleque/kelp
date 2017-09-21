@@ -57,7 +57,7 @@ func (config *IniConfiger) load() {
 				currentGroup = string([]rune(line)[start+1 : end-start])
 			} else if strings.Contains(line, "=") {
 				// is a key value
-				kvSet := strings.Split(line, "=")
+				kvSet := strings.SplitN(line, "=", 2)
 				key := strings.Trim(kvSet[0], " ")
 				value := strings.Trim(kvSet[1], " ")
 				config.set(currentGroup+"."+key, value)

@@ -1,6 +1,3 @@
 .env
 .idea/
-*.ini
 *.log
-dist/
-example/runtime/

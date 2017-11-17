@@ -1,7 +1,7 @@
 Kelp
 ----
 
-A go libs for LCGC
+A go libs
 
 - [web](./web) Http(s) 服务组件，包含服务端和客户端方法实现
 - [db](./db) 数据库封装组件

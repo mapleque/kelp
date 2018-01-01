@@ -26,11 +26,46 @@ func TestValid(t *testing.T) {
 		&Model{"abc", "abc", 1, 1, -1, "a"}, // test -1 (-1:1]
 		&Model{"abc", "abc", 1, 1, 1, "ab"}, // test ab [1:1]
 		&Model{"abc", "abc", 1, 1, -1, ""},  // test "" [1:1]
+		&Model{
+			Azstr: "abc",
+			Name:  "abc",
+			ir:    1,
+			fr:    1,
+			sr:    "a",
+		},
 	}
 	for i, c := range passCases {
 		if err := Valid(c); err != nil {
 			t.Fatal("pass cases", i, err)
 		}
+	}
+	for i, c := range errCases {
+		if err := Valid(c); err == nil {
+			t.Fatal("err cases", i)
+		}
+	}
+}
+
+type OpModel struct {
+	Op1 string `valid:"optional,[2:10]"`
+	Op2 string `valid:"[1:10],optional"`
+	Op3 string `valid:"[1:10],optional"`
+}
+
+func TestOptional(t *testing.T) {
+	passCases := []*OpModel{
+		&OpModel{
+			Op1: "abc",
+			Op2: "abc",
+		},
+	}
+	for i, c := range passCases {
+		if err := Valid(c); err != nil {
+			t.Fatal("pass cases", i, err)
+		}
+	}
+	errCases := []*OpModel{
+		&OpModel{Op1: "a"},
 	}
 	for i, c := range errCases {
 		if err := Valid(c); err == nil {

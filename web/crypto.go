@@ -161,6 +161,15 @@ func Sha1Sign(key, data []byte) []byte {
 	return sign
 }
 
+func Sha1SignTimestamp(key, data []byte, timestamp int64) []byte {
+	body := Base64Encode(data)
+	stampByte := []byte(strconv.FormatInt(timestamp, 10))
+
+	// body|timestamp|key ----> sha1
+	sign := Sha1(bytes.Join([][]byte{body, stampByte, key}, []byte(`|`)))
+	return sign
+}
+
 func Sha1Verify(key, data, sign []byte, maxDelaySecond int) bool {
 	if maxDelaySecond < 0 {
 		return false
@@ -172,6 +181,18 @@ func Sha1Verify(key, data, sign []byte, maxDelaySecond int) bool {
 		if bytes.Equal(sign, Sha1(bytes.Join([][]byte{body, timestamp, key}, []byte(`|`)))) {
 			return true
 		}
+	}
+	return false
+}
+
+func Sha1VerifyTimestamp(key, data, sign []byte, maxDelaySecond, timestamp int64) bool {
+	if timestamp + maxDelaySecond < time.Now().Unix() {
+		return false
+	}
+	body := Base64Encode(data)
+	stampByte := []byte(strconv.FormatInt(timestamp, 10))
+	if bytes.Equal(sign, Sha1(bytes.Join([][]byte{body, stampByte, key}, []byte(`|`)))) {
+		return true
 	}
 	return false
 }

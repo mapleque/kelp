@@ -111,6 +111,16 @@ func TestSha1Sign(t *testing.T) {
 	if Sha1Verify([]byte(`aaa`), src, sign, 0) {
 		t.Error("sign verify should not pass")
 	}
+
+	timestamp := time.Now().Unix()
+	signT := Sha1SignTimestamp(signKey, src, timestamp)
+	if !Sha1VerifyTimestamp(signKey, src, signT, 1, timestamp) {
+		t.Error("sign timestamp verify should pass")
+	}
+	time.Sleep(1 * time.Second)
+	if Sha1VerifyTimestamp(signKey, src, signT, 0, timestamp) {
+		t.Error("sign verify should not pass")
+	}
 }
 
 func TestRandMd5(t *testing.T) {

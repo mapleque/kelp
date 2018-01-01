@@ -353,16 +353,16 @@ func scanMysqlQueryOne(dest interface{}, rows *sql.Rows) error {
 	// dest 必须是 ptr
 	destType := reflect.TypeOf(dest)
 	if destType.Kind() != reflect.Ptr {
-		return fmt.Errorf("dest should be a ptr but %s", destType.Kind())
+		return fmt.Errorf("kelp.db.mysql: dest should be a ptr but %s", destType.Kind())
 	}
 	destValue := reflect.ValueOf(dest).Elem()
 	if !destValue.CanSet() {
-		return fmt.Errorf("dest can not set")
+		return fmt.Errorf("kelp.db.mysql: dest can not set")
 	}
 	eleType := destType.Elem()
 	// 必须要是struct类型
 	if eleType.Kind() != reflect.Struct {
-		return fmt.Errorf("target should be a *struct but *%s", eleType.Kind())
+		return fmt.Errorf("kelp.db.mysql: target should be a *struct but *%s", eleType.Kind())
 	}
 	// 遍历查询结果
 	columnTypes, err := rows.ColumnTypes()
@@ -417,7 +417,7 @@ func scanMysqlQueryOne(dest interface{}, rows *sql.Rows) error {
 			}
 		}
 	} else {
-		return fmt.Errorf("no data to bind")
+		return fmt.Errorf("kelp.db.mysql: no data to bind")
 	}
 	if err = rows.Err(); err != nil {
 		return err
@@ -429,17 +429,17 @@ func scanMysqlQueryRows(dest interface{}, rows *sql.Rows) error {
 	// dest 必须是 ptr
 	destType := reflect.TypeOf(dest)
 	if destType.Kind() != reflect.Ptr {
-		return fmt.Errorf("dest should be a ptr but %s", destType.Kind())
+		return fmt.Errorf("kelp.db.mysql: dest should be a ptr but %s", destType.Kind())
 	}
 	destValue := reflect.ValueOf(dest).Elem()
 	if !destValue.CanSet() {
-		return fmt.Errorf("dest can not set")
+		return fmt.Errorf("kelp.db.mysql: dest can not set")
 	}
 	listType := destType.Elem()
 
 	// list必须是slice
 	if listType.Kind() != reflect.Slice {
-		return fmt.Errorf("target should be a slice but %s", listType.Kind())
+		return fmt.Errorf("kelp.db.mysql: target should be a slice but %s", listType.Kind())
 	}
 	// 获取list的元素类型
 	eleType := listType.Elem()
@@ -452,7 +452,7 @@ func scanMysqlQueryRows(dest interface{}, rows *sql.Rows) error {
 
 	// 必须要是struct类型
 	if eleType.Kind() != reflect.Struct {
-		return fmt.Errorf("target should be a []struct or a []*struct but []%s", eleType.Kind())
+		return fmt.Errorf("kelp.db.mysql: target should be a []struct or a []*struct but []%s", eleType.Kind())
 	}
 
 	// 遍历查询结果
@@ -491,6 +491,8 @@ func scanMysqlQueryRows(dest interface{}, rows *sql.Rows) error {
 						switch field.Type.Kind() {
 						case reflect.Int:
 							eleField.Set(reflect.ValueOf(ToInt(col)))
+						case reflect.Int64:
+							eleField.Set(reflect.ValueOf(ToInt64(col)))
 						case reflect.Float64:
 							eleField.Set(reflect.ValueOf(ToFloat(col)))
 						case reflect.String:
@@ -527,6 +529,8 @@ func scanMysqlQueryRows(dest interface{}, rows *sql.Rows) error {
 // 类型转换，任何类型转成int
 func ToInt(param interface{}) int {
 	switch ret := param.(type) {
+	case int:
+		return ret
 	case int64:
 		return int(ret)
 	case float64:
@@ -536,6 +540,36 @@ func ToInt(param interface{}) int {
 		return r
 	case string:
 		r, _ := strconv.Atoi(ret)
+		return r
+	case bool:
+		if ret {
+			return 1
+		} else {
+			return 0
+		}
+	case nil:
+		return 0
+	default:
+		log.Error("param type change to int error",
+			ret, fmt.Sprintf("%T", ret))
+		return 0
+	}
+}
+
+// 类型转换，任何类型转成int64
+func ToInt64(param interface{}) int64 {
+	switch ret := param.(type) {
+	case int:
+		return int64(ret)
+	case int64:
+		return ret
+	case float64:
+		return int64(ret)
+	case []byte:
+		r, _ := strconv.ParseInt(string(ret), 10, 64)
+		return r
+	case string:
+		r, _ := strconv.ParseInt(ret, 10, 64)
 		return r
 	case bool:
 		if ret {

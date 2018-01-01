@@ -25,6 +25,9 @@ type Context struct {
 }
 
 func newContext(w http.ResponseWriter, req *http.Request) *Context {
+	// 先尝试parse form解码
+	req.ParseMultipartForm(1024 * 1000 * 10)
+	// 再把body读出来
 	body, _ := ioutil.ReadAll(req.Body)
 	return &Context{
 		Request:        req,

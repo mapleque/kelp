@@ -25,11 +25,15 @@ func RegisterValidFunc(key string, f ValidFunc) {
 
 // current field is not the default static value
 func required(field reflect.Value, parent reflect.Value, root reflect.Value) bool {
+	return !isEmpty(field)
+}
+
+func isEmpty(field reflect.Value) bool {
 	switch field.Kind() {
 	case reflect.Slice, reflect.Map, reflect.Ptr, reflect.Interface, reflect.Chan, reflect.Func:
-		return !field.IsNil()
+		return field.IsNil()
 	default:
-		return field.IsValid() && field.Interface() != reflect.Zero(field.Type()).Interface()
+		return field.IsValid() && field.Interface() == reflect.Zero(field.Type()).Interface()
 	}
 }
 
@@ -47,8 +51,10 @@ func Valid(dest interface{}) error {
 }
 
 const (
-	_REG_MODE   = "/.*/"
-	_RANGE_MODE = "[\\[\\(](-{0,1}\\d+):(-{0,1}\\d+)[\\]\\)]"
+	_REG_MODE      = "/.*/"
+	_RANGE_MODE    = "[\\[\\(](-{0,1}\\d+):(-{0,1}\\d+)[\\]\\)]"
+	_FUNC_MODE     = "[a-zA-Z_]+[0-9a-zA-Z_]*"
+	_OPTIONAL_MODE = "optional"
 )
 
 func valid(dest reflect.Value, root reflect.Value) error {
@@ -59,8 +65,19 @@ func valid(dest reflect.Value, root reflect.Value) error {
 		fieldName := field.Name
 		fieldTags, exist := field.Tag.Lookup("valid")
 		if exist {
-			for _, fieldTag := range strings.Split(fieldTags, ",") {
-				if match, _ := regexp.MatchString(_REG_MODE, fieldTag); match {
+			tags := strings.Split(fieldTags, ",")
+			for _, fieldTag := range tags {
+				// if optional and empty value, pass all
+				if match, _ := regexp.MatchString(_OPTIONAL_MODE, fieldTag); match {
+					if isEmpty(fieldValue) {
+						return nil
+					}
+				}
+			}
+			for _, fieldTag := range tags {
+				if match, _ := regexp.MatchString(_OPTIONAL_MODE, fieldTag); match {
+					continue
+				} else if match, _ := regexp.MatchString(_REG_MODE, fieldTag); match {
 					// reg mode
 					if field.Type.Kind() != reflect.String {
 						return fmt.Errorf("valid failed, field type should be string but %s", field.Type.Kind())
@@ -119,7 +136,7 @@ func valid(dest reflect.Value, root reflect.Value) error {
 							"valid failed, range mode not support on field %s with type %s",
 							fieldName, field.Type.Kind())
 					}
-				} else if match, _ := regexp.MatchString("[a-zA-Z_]+[0-9a-zA-Z_]*", fieldTag); match {
+				} else if match, _ := regexp.MatchString(_FUNC_MODE, fieldTag); match {
 					// func mode
 					if f, ok := funcMap[fieldTag]; ok {
 						if !f(fieldValue, dest, root) {

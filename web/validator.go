@@ -13,14 +13,21 @@ import (
 type ValidFunc func(reflect.Value, reflect.Value, reflect.Value) bool
 
 var funcMap map[string]ValidFunc
+var messageMap map[string]string
 
 func init() {
 	funcMap = make(map[string]ValidFunc)
+	messageMap = make(map[string]string)
 	funcMap["required"] = required
 }
 
 func RegisterValidFunc(key string, f ValidFunc) {
 	funcMap[key] = f
+}
+
+func RegisterValidFuncWithMessage(key string, f ValidFunc, message string) {
+	funcMap[key] = f
+	messageMap[key] = message
 }
 
 // current field is not the default static value
@@ -140,6 +147,9 @@ func valid(dest reflect.Value, root reflect.Value) error {
 					// func mode
 					if f, ok := funcMap[fieldTag]; ok {
 						if !f(fieldValue, dest, root) {
+							if msg, exist := messageMap[fieldTag]; exist {
+								return fmt.Errorf(msg)
+							}
 							return fmt.Errorf(
 								"valid failed, func %s return false on %s with value %s",
 								fieldTag, fieldName, fieldValue)

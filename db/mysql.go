@@ -95,10 +95,10 @@ func (dbq *MysqlQuery) Begin() (*MysqlTransaction, error) {
 func (dbq *MysqlQuery) Query(list interface{}, sql string, params ...interface{}) error {
 	log.Debug("[query sql]", "[db:"+dbq.database+"]", sql, params)
 	stmt, err := dbq.conn.Prepare(sql)
-	defer stmt.Close()
 	if err != nil {
 		return err
 	}
+	defer stmt.Close()
 	rows, err := stmt.Query(params...)
 	if err != nil {
 		return err
@@ -109,10 +109,10 @@ func (dbq *MysqlQuery) Query(list interface{}, sql string, params ...interface{}
 func (dbq *MysqlQuery) QueryOne(dest interface{}, sql string, params ...interface{}) error {
 	log.Debug("[query sql]", "[db:"+dbq.database+"]", sql, params)
 	stmt, err := dbq.conn.Prepare(sql)
-	defer stmt.Close()
 	if err != nil {
 		return err
 	}
+	defer stmt.Close()
 	rows, err := stmt.Query(params...)
 	if err != nil {
 		return err
@@ -127,10 +127,10 @@ func (dbq *MysqlQuery) Select(
 
 	log.Debug("[select sql]", "[db:"+dbq.database+"]", sql, params)
 	stmt, err := dbq.conn.Prepare(sql)
-	defer stmt.Close()
 	if err != nil {
 		return nil, err
 	}
+	defer stmt.Close()
 	rows, err := stmt.Query(params...)
 	if err != nil {
 		return nil, err
@@ -180,10 +180,10 @@ func (dbt *MysqlTransaction) GetConn() *sql.Tx {
 func (dbt *MysqlTransaction) Query(list interface{}, sql string, params ...interface{}) error {
 	log.Debug("[query sql in transaction]", "[db:"+dbt.database+"]", sql, params)
 	stmt, err := dbt.conn.Prepare(sql)
-	defer stmt.Close()
 	if err != nil {
 		return err
 	}
+	defer stmt.Close()
 	rows, err := stmt.Query(params...)
 	if err != nil {
 		return err
@@ -194,10 +194,10 @@ func (dbt *MysqlTransaction) Query(list interface{}, sql string, params ...inter
 func (dbt *MysqlTransaction) QueryOne(dest interface{}, sql string, params ...interface{}) error {
 	log.Debug("[query sql in transaction]", "[db:"+dbt.database+"]", sql, params)
 	stmt, err := dbt.conn.Prepare(sql)
-	defer stmt.Close()
 	if err != nil {
 		return err
 	}
+	defer stmt.Close()
 	rows, err := stmt.Query(params...)
 	if err != nil {
 		return err
@@ -212,10 +212,10 @@ func (dbt *MysqlTransaction) Select(
 
 	log.Debug("[select sql in transaction]", "[db:"+dbt.database+"]", sql, params)
 	stmt, err := dbt.conn.Prepare(sql)
-	defer stmt.Close()
 	if err != nil {
 		return nil, err
 	}
+	defer stmt.Close()
 	rows, err := stmt.Query(params...)
 	if err != nil {
 		return nil, err

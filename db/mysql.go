@@ -385,6 +385,9 @@ func scanMysqlQueryOne(dest interface{}, rows *sql.Rows) error {
 			key := columnTypes[i].Name()
 			for j := 0; j < ele.NumField(); j++ {
 				field := ele.Type().Field(j)
+				if _, ignore := field.Tag.Lookup("ignore_db_bind"); ignore {
+					continue
+				}
 				fieldName, ok := field.Tag.Lookup("column")
 				if !ok {
 					fieldName, ok = field.Tag.Lookup("json")
@@ -478,6 +481,9 @@ func scanMysqlQueryRows(dest interface{}, rows *sql.Rows) error {
 			key := columnTypes[i].Name()
 			for j := 0; j < ele.NumField(); j++ {
 				field := ele.Type().Field(j)
+				if _, ignore := field.Tag.Lookup("ignore_db_bind"); ignore {
+					continue
+				}
 				fieldName, ok := field.Tag.Lookup("column")
 				if !ok {
 					fieldName, ok = field.Tag.Lookup("json")

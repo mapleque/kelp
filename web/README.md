@@ -210,11 +210,34 @@ Session
 
 We advise using session in handler chain.
 ```
+// before start use session middleware
+server.UseMemSession(2*time.Hour, 5*time.Minute)
+// server.UseSession(YourSessionImplementiSessionPool)
+
+// in handler chain
+c.SetSession("session_key", value)
+value := c.GetSession("session_key")
 ```
 
 Client
 ----
 
+```
+body, err := web.PostJson("http://127.0.0.1/jsonapi", jsonstr)
+
+body, err := web.PostForm("http://127.0.0.1/formapi", formValues)
+
+body, err := web.Get("http://127.0.0.1/getapi?query=xxx")
+
+err := Mail(
+    "mapleque@163.com",
+    "password",
+    "smtp.163.com:465",
+    "mapleque@163.com",
+    "Mail Title",
+    "Mail Content",
+    )
+```
 
 Crypt
 ----

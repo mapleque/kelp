@@ -18,6 +18,7 @@ Create connection
 ```
 conn := db.UseMysql("db1")
 ```
+
 Do operations, such as:
 - conn.Select
 - conn.Insert
@@ -37,10 +38,12 @@ Do operations, such as:
 - conn.Execute
 - conn.Query
 - conn.QueryOne
+
 Commit
 ```
 trans.Commit()
 ```
+
 Rollback
 ```
 trans.Rollback()

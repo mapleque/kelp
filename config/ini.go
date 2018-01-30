@@ -19,7 +19,7 @@ type IniGroup map[string]string
 
 var _DEFAULT_GROUP = "default"
 
-func NewIniConfiger(file string) Configer {
+func newIniConfiger(file string) Configer {
 	config := &IniConfiger{}
 	config.file = file
 	config.data = make(map[string]IniGroup)
@@ -41,9 +41,6 @@ func (config *IniConfiger) load() {
 	currentGroup := _DEFAULT_GROUP
 	for {
 		line, err := buf.ReadString('\n')
-		if err != nil || err == io.EOF {
-			break
-		}
 		line = strings.Trim(line, "\n")
 		line = strings.Trim(line, " ")
 		if strings.Contains(line, ";") {
@@ -65,6 +62,9 @@ func (config *IniConfiger) load() {
 				// white space or comment
 				// do nothing
 			}
+		}
+		if err != nil || err == io.EOF {
+			break
 		}
 	}
 	log.Info("load config file finish", config.file)

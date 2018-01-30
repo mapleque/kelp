@@ -1,8 +1,7 @@
-# Kelp
-一个完成后端框架，提供队列，定时任务，web服务，数据库，日志，配置文件，监控等模块支持。
+Kelp
+----
 
-其中每个模块都独立封装，可以单独使用。
-## 部署
+A go libs
 
 1. 依赖第三方mysql驱动
 ```
@@ -139,7 +138,7 @@ configer := config.InitDefault(config.INI, "ini", "./config_file.ini", "the conf
 configer := config.Default()
 ```
 
-## Database
+## Mysql
 
 数据库模块支持mysql数据库操作。
 使用数据库模块需要在系统启动时初始化数据库连接：
@@ -147,7 +146,7 @@ configer := config.Default()
 // init db connection
 // ping db server when add db
 // if ping failed, it will fatal
-db.AddDB("db_name",
+db.AddMysql("db_name",
     "username:password@tcp(127.0.0.1:3306)/dbname?charset=utf8",
     10,// 最大连接数
     10,// 最大闲置连接数
@@ -159,17 +158,14 @@ db.AddDB("db_name",
 // Update返回受影响行数
 // Excute返回受影响行数
 
-// 直接调用方法Select,Update,Insert
-ret := db.Select("db_name", "your sql", your_param...)
-
 // 先选择database，再调用方法
-query := db.UseDB("db_name")
+query := db.UseMysql("db_name")
 ret := query.Select("your sql", your_param...)
 
 // 使用事物：
 trans := db.Begin("db_name")
 // 也可以先选择database，在开启事物
-// query := db.UseDB("db_name")
+// query := db.UseMysql("db_name")
 // trans := query.Begin()
 trans.Update("your sql", your_param...)
 ret := trans.Insert("your sql", your_param...)
@@ -180,19 +176,11 @@ if ret < 0 {
 } else {
     trans.Commit()
 }
-```
 
-此外，数据库模块还支持自定义open connection方法：
+// 获取链接自行操作
 ```
-db.SetOpenFunc(func(dsn string) db.Connector{
-    // implement your open func
-    // 返回的对象需要实现db.Connector
-})
-```
-这样就可以改变connection对象，如果有需要其他包的connection对象，这里可以通过get获取到
-```
-conn := db.Use("db_name").GetConn() // return interface{} need type assertion
-transConn := db.Begin("db_name").GetConn() // return interface{} need type assertion
+conn := db.UseMysql("db_name").GetConn() // return *sql.DB
+transConn := db.Begin("db_name").GetConn() // return *sql.Tx
 ```
 
 ## Log
@@ -235,3 +223,8 @@ log.Get("log_file_name.log").Info("some massage")
 ### Type
 
 提供了一些强制类型转换的方法。
+=======
+- [web](./web) Http(s) 服务组件，包含服务端和客户端方法实现
+- [db](./db) 数据库封装组件
+- [log](./log) 日志组件，支持分级输出和文件轮转
+- [config](./config) 配置加载组件封装

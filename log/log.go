@@ -13,14 +13,20 @@ package log
 // Error 有callstack，可指定logger
 // Fatal 有callstack，且服务会停止
 // Callstack 直接输出当前callstack，可指定logger
+// 当LogCallstack设置为false时，所有callstack都不输出
 
+// AddSizeRotateLogger会按照文件大小切分轮转
+// AddDateRotateLogger会按照日期切分轮转
 import (
 	"log"
 	"os"
+	"os/signal"
 	"runtime"
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
+	"time"
 )
 
 const (
@@ -33,6 +39,11 @@ const (
 	FATAL
 )
 
+const (
+	DATE_MODE int = iota
+	SIZE_MODE
+)
+
 // LogPool 日志池对象
 type LogPool struct {
 	Pool map[string]*Logger
@@ -42,19 +53,22 @@ type LogPool struct {
 type Logger struct {
 	path      string // 日志输出路径
 	filename  string // 日志输出文件名
+	mode      int    // 日志切分模式
 	maxLevel  int    // 日志接受的最高级别
 	minLevel  int    // 日志接受的最低级别
 	maxNumber int    // 日志最大文件数，超过则循环替代
 	maxSize   int64  // 日志单个文件最大size，单位byte
 
-	suffix  int           // 当前rotate后缀
-	mux     *sync.RWMutex // 并发锁
-	logFile *os.File      // 日志文件指针
-	logger  *log.Logger   // go的logger指针
+	suffix        int           // 当前rotate后缀
+	mux           *sync.RWMutex // 并发锁
+	logFile       *os.File      // 日志文件指针
+	logger        *log.Logger   // go的logger指针
+	lastWriteTime time.Time
 }
 
 // Log 全局变量
 var Log *LogPool
+var LogCallstack bool = true
 
 func init() {
 	if Log != nil {
@@ -63,6 +77,7 @@ func init() {
 	Info("init log module...")
 	Log = &LogPool{}
 	Log.Pool = make(map[string]*Logger)
+
 }
 
 // 增加一个日志输出模块
@@ -70,22 +85,57 @@ func AddLogger(
 	name, path string,
 	maxNumber int, maxSize int64,
 	maxLevel int, minLevel int) {
+
+	AddSizeRotateLogger(name, path, maxNumber, maxSize, maxLevel, minLevel)
+}
+
+// 根据日志大小切割轮转
+func AddSizeRotateLogger(
+	name, path string,
+	maxNumber int, maxSize int64,
+	maxLevel int, minLevel int) {
 	Info("add logger", name, path)
-	logger := &Logger{}
+	logger := &Logger{
+		path:     path,
+		filename: name,
+		logFile:  openFile(path, name),
 
-	logger.path = path
-	logger.filename = name
-	logger.logFile = openFile(path, name)
-	logger.maxNumber = maxNumber
-	logger.maxSize = maxSize
-	logger.maxLevel = maxLevel
-	logger.minLevel = minLevel
+		mode:      SIZE_MODE,
+		maxNumber: maxNumber,
+		maxSize:   maxSize,
 
-	logger.suffix = 0
-	logger.mux = new(sync.RWMutex)
+		maxLevel: maxLevel,
+		minLevel: minLevel,
+
+		suffix: 0,
+		mux:    new(sync.RWMutex),
+	}
 	logger.logger = log.New(logger.logFile, "", log.Ldate|log.Ltime)
 
 	Log.Pool[name] = logger
+	go logger.ListenToReopenFile()
+}
+
+// 根据日期切割轮转
+func AddDateRotateLogger(name, path string, maxLevel, minLevel int) {
+	logger := &Logger{
+		path:     path,
+		filename: name,
+		logFile:  openFile(path, name),
+
+		mode:          DATE_MODE,
+		lastWriteTime: time.Now(),
+
+		maxLevel: maxLevel,
+		minLevel: minLevel,
+
+		suffix: 0,
+		mux:    new(sync.RWMutex),
+	}
+	logger.logger = log.New(logger.logFile, "", log.Ldate|log.Ltime)
+
+	Log.Pool[name] = logger
+	go logger.ListenToReopenFile()
 }
 
 // logInfo是为了可变参数输出而定义的接口数据类型
@@ -124,8 +174,10 @@ func Fatal(msg ...interface{}) {
 }
 
 func Callstack(level int) {
-	msg := getCallstack()
-	baseLog(level, "", msg...)
+	if LogCallstack {
+		msg := getCallstack()
+		baseLog(level, "", msg...)
+	}
 }
 
 func (lp *LogPool) Get(name string) *Logger {
@@ -171,11 +223,12 @@ func (lp *LogPool) log(level int, msg ...interface{}) {
 	}
 }
 
-func (logger *Logger) logAndRotate(msg ...interface{}) {
-	logger.mux.Lock()
-	defer logger.mux.Unlock()
-	logger.rotate()
-	logger.logger.Println(msg...)
+func (lg *Logger) logAndRotate(msg ...interface{}) {
+	lg.mux.Lock()
+	defer lg.mux.Unlock()
+	lg.rotate()
+	lg.lastWriteTime = time.Now()
+	lg.logger.Println(msg...)
 }
 
 func (lg *Logger) Debug(msg ...interface{}) {
@@ -213,19 +266,54 @@ func (logger *Logger) log(level int, prefix string, msg ...interface{}) {
 
 func (lg *Logger) rotate() {
 	curFilename := lg.path + "/" + lg.filename
-	if fileSize(curFilename) > lg.maxSize {
-		lg.suffix = int((lg.suffix + 1) % lg.maxNumber)
-		if lg.logFile != nil {
-			lg.logFile.Close()
+	switch lg.mode {
+	case DATE_MODE:
+		if lg.lastWriteTime.Day() != time.Now().Day() {
+			lg.mvFile()
 		}
+	case SIZE_MODE:
+		if fileSize(curFilename) > lg.maxSize {
+			lg.mvFile()
+		}
+	}
+}
+
+func (lg *Logger) mvFile() {
+	curFilename := lg.path + "/" + lg.filename
+	if lg.logFile != nil {
+		lg.logFile.Close()
+	}
+	switch lg.mode {
+	case DATE_MODE:
+		tarFilename := lg.lastWriteTime.Format("20060102")
+		//is file exist, remove it
+		if fileIsExist(tarFilename) {
+			os.Remove(tarFilename)
+		}
+		os.Rename(curFilename, tarFilename)
+	case SIZE_MODE:
+		lg.suffix = int((lg.suffix + 1) % lg.maxNumber)
 		tarFilename := curFilename + "." + strconv.Itoa(int(lg.suffix))
 		//is file exist, remove it
 		if fileIsExist(tarFilename) {
 			os.Remove(tarFilename)
 		}
 		os.Rename(curFilename, tarFilename)
+	}
+	lg.logFile = openFile(lg.path, lg.filename)
+	lg.logger = log.New(lg.logFile, "", log.Ldate|log.Ltime)
+}
+
+func (lg *Logger) ListenToReopenFile() {
+	c := make(chan os.Signal)
+	signal.Notify(c, syscall.SIGUSR1)
+	for {
+		<-c
+		lg.mux.Lock()
+		lg.logFile.Close()
 		lg.logFile = openFile(lg.path, lg.filename)
 		lg.logger = log.New(lg.logFile, "", log.Ldate|log.Ltime)
+		lg.mux.Unlock()
 	}
 }
 
@@ -279,12 +367,6 @@ func getCallstack() []interface{} {
 }
 
 func isFilterCallstack(file string) bool {
-	/*
-		if strings.Contains(file, "/coral/") ||
-			strings.Contains(file, "/golang/src/") {
-			return true
-		}
-	*/
 	if strings.Contains(file, "/golang/src/") {
 		return true
 	}

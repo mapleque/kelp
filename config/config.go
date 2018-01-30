@@ -61,6 +61,20 @@ func Default() Configer {
 	return Use(_DEFAULT_CONFIG)
 }
 
+func InitDefault(mode CONFIG_MODE, operationParam, defaultValue, tips string) Configer {
+	confFile := flag.String(operationParam, defaultValue, tips)
+	flag.Parse()
+	if *confFile == "" {
+		panic("run with -h to find usage")
+	}
+	AddConfiger(INI, _DEFAULT_CONFIG, *confFile)
+	return Default()
+}
+
+func Default() Configer {
+	return Use(_DEFAULT_CONFIG)
+}
+
 func Use(name string) Configer {
 	return config.Pool[name]
 }
@@ -79,10 +93,8 @@ func Add(mode _CONFIG_MODE, name, file string) {
 	var configer Configer
 	switch mode {
 	case INI:
-		configer = NewIniConfiger(file)
+		configer = newIniConfiger(file)
 		break
-	case XML:
-		// TODO
 	case JSON:
 		// TODO
 	default:

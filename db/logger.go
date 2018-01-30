@@ -28,17 +28,21 @@ func SetLogger(logger logInterface) {
 }
 
 func (lg *logger) Debug(msg ...interface{}) {
+	msg = append([]interface{}{"[Debug][kelp.db]"}, msg...)
 	syslog.Println(msg...)
 }
 
 func (lg *logger) Info(msg ...interface{}) {
+	msg = append([]interface{}{"[Info][kelp.db]"}, msg...)
 	syslog.Println(msg...)
 }
 
 func (lg *logger) Warn(msg ...interface{}) {
+	msg = append([]interface{}{"[Warn][kelp.db]"}, msg...)
 	syslog.Println(msg...)
 }
 
 func (lg *logger) Error(msg ...interface{}) {
+	msg = append([]interface{}{"[Error][kelp.db]"}, msg...)
 	syslog.Println(msg...)
 }

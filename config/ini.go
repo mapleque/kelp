@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"io"
 	"os"
-	"strconv"
 	"strings"
 	"sync"
 )
@@ -109,37 +108,16 @@ func (config *IniConfiger) set(key, value string) {
 }
 
 func (config *IniConfiger) Bool(key string) bool {
-	ret := strings.ToLower(config.Get(key))
-	switch ret {
-	case "1", "true", "y", "on", "yes":
-		return true
-	case "0", "false", "n", "off", "no":
-		return false
-	default:
-		log.Error("invalid bool config item", config.file, key, ret)
-	}
-	return false
+	return toBool(config.Get(key))
 }
 func (config *IniConfiger) Int(key string) int {
-	ret, err := strconv.Atoi(config.Get(key))
-	if err != nil {
-		log.Error("invalid int config item", config.file, key, err.Error())
-	}
-	return ret
+	return toInt(config.Get(key))
 }
 func (config *IniConfiger) Int64(key string) int64 {
-	ret, err := strconv.ParseInt(config.Get(key), 10, 64)
-	if err != nil {
-		log.Error("invalid int64 config item", config.file, key, err.Error())
-	}
-	return ret
+	return toInt64(config.Get(key))
 }
 func (config *IniConfiger) Float(key string) float64 {
-	ret, err := strconv.ParseFloat(config.Get(key), 64)
-	if err != nil {
-		log.Error("invalid float config item", config.file, key, err.Error())
-	}
-	return ret
+	return toFloat(config.Get(key))
 }
 func (config *IniConfiger) String(key string) string {
 	return config.Get(key)

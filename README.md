@@ -1,7 +1,10 @@
 Kelp
 ----
 
-- [web](./web) Http(s) 服务组件，包含服务端和客户端方法实现
-- [db](./db) 数据库封装组件
-- [log](./log) 日志组件，支持分级输出和文件轮转
-- [config](./config) 配置加载组件封装
+Go package lib.
+
+- [web](./web) Http(s) server, handlers and client
+- [grpc](./grpc) Grpc server and handlers
+- [mysql](./mysql) mysql connection pool, api and sql helper
+- [log](./log) log with rotate and level
+- [config](./config) configure loading tools

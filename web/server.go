@@ -2,6 +2,7 @@ package web
 
 import (
 	"net/http"
+	"net/http/httptest"
 )
 
 type Server struct {
@@ -22,6 +23,10 @@ func New(host string) *Server {
 			children:     []*Router{},
 		},
 	}
+}
+
+func (this *Server) RunTest() *httptest.Server {
+	return httptest.NewServer(this)
 }
 
 func (this *Server) Run() {

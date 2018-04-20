@@ -11,8 +11,8 @@ const (
 )
 
 type Session struct {
-	token    string
-	meta     map[string]interface{}
+	token    string                 `json:"token"`
+	meta     map[string]interface{} `json:"meta"`
 	expired  time.Time
 	duration time.Duration
 }
@@ -42,6 +42,12 @@ func (this *Server) UseSession(sessionPool iSessionPool) {
 
 func (this *_SessionServer) setPool(pool iSessionPool) {
 	this.pool = pool
+}
+
+// 支持自己实现的session方法
+func (this *Context) NewSession(token string, duration time.Duration) {
+	session := NewSession(token, duration)
+	this.metaInternal[_SESSION_META_KEY] = session
 }
 
 func (this *Context) StartSession(token string) error {

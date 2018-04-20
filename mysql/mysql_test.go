@@ -1,63 +1,80 @@
-package db
+package mysql
 
 import (
 	"encoding/json"
-	"fmt"
+	"flag"
 	"testing"
 	"time"
 )
 
-// Before run this test, you should have a mysqld service and account to test database
 func init() {
-	AddMysql("test",
-		"www:www@tcp(127.0.0.1:3306)/test?charset=utf8",
+	dsn := flag.String("mysql", "www:www@tcp(127.0.0.1:3306)/test?charset=utf8", "mysql dsn")
+	flag.Parse()
+	AddDB(
+		"test",
+		*dsn,
 		1, 1,
 	)
 }
+
+type TestModel struct {
+	Id    int64
+	Value string
+}
+
 func TestMysql(t *testing.T) {
-	conn := UseMysql("test")
-	conn.Execute("DROP TABLE IF EXISTS test_mysql")
-	conn.Execute("CREATE TABLE test_mysql (" +
+	conn := GetConnector("test")
+	if _, err := conn.Execute("DROP TABLE IF EXISTS test_mysql_kelp"); err != nil {
+		t.Fatal("drop table failed", err)
+	}
+	if _, err := conn.Execute("CREATE TABLE test_mysql_kelp (" +
 		"id INT NOT NULL AUTO_INCREMENT," +
 		"value VARCHAR(10) DEFAULT NULL," +
-		"PRIMARY KEY (id))")
-	lastId, _ := conn.Insert("INSERT INTO test_mysql (value) VALUES (?)", "test_data")
+		"PRIMARY KEY (id))"); err != nil {
+		t.Fatal("create table failed", err)
+	}
+	lastId, _ := conn.Insert("INSERT INTO test_mysql_kelp (value) VALUES (?)", "test_data")
 	if lastId != 1 {
 		t.Fatal("last insert id wrong", lastId)
 	}
-	list, _ := conn.Select("SELECT id FROM test_mysql WHERE id = ?", 1)
-	if len(list) != 1 {
-		t.Fatal("list length wrong", list)
-	}
-	ignoreId, _ := conn.Insert("INSERT IGNORE INTO test_mysql VALUES (1,?)", "test_data")
+	ignoreId, _ := conn.Insert("INSERT IGNORE INTO test_mysql_kelp VALUES (1,?)", "test_data")
 	if ignoreId != 0 {
 		t.Fatal("ignore insert id wrong", ignoreId)
 	}
-	affectRow, _ := conn.Update("UPDATE test_mysql SET value = ? WHERE id = 1 LIMIT 1", "test_other")
+	affectRow, _ := conn.Execute("UPDATE test_mysql_kelp SET value = ? WHERE id = 1 LIMIT 1", "test_other")
 	if affectRow != 1 {
 		t.Fatal("affect row wrong", affectRow)
 	}
-	res, _ := conn.Select("SELECT * FROM test_mysql WHERE id = 1")
-	if len(res) != 1 || res[0]["value"] != "test_other" {
-		t.Fatal("update result wrong", res)
+	testModel := &TestModel{}
+	if err := conn.QueryOne(testModel, "SELECT * FROM test_mysql_kelp WHERE id = 1 LIMIT 1"); err != nil {
+		t.Fatal("query error", err)
+	}
+	if testModel.Value != "test_other" {
+		t.Fatal("update failed", testModel)
 	}
 
 	trans, _ := conn.Begin()
-	trans.Insert("INSERT INTO test_mysql (value) VALUES (?)", "test_trans")
-	trans.Update("UPDATE test_mysql SET value = ? WHERE id = 1 LIMIT 1", "test_trans")
+	trans.Insert("INSERT INTO test_mysql_kelp (value) VALUES (?)", "test_trans")
+	trans.Execute("UPDATE test_mysql_kelp SET value = ? WHERE id = 1 LIMIT 1", "test_trans")
 	trans.Rollback()
-	res, _ = conn.Select("SELECT * FROM test_mysql WHERE id = 1")
-	if len(res) != 1 || res[0]["value"] != "test_other" {
-		t.Fatal("trans rollback result wrong", res)
+	testModel = &TestModel{}
+	if err := conn.QueryOne(testModel, "SELECT * FROM test_mysql_kelp WHERE id = 1 LIMIT 1"); err != nil {
+		t.Fatal("query error", err)
+	}
+	if testModel.Value == "test_trans" {
+		t.Fatal("rollback failed", testModel)
 	}
 
 	trans, _ = conn.Begin()
-	trans.Insert("INSERT INTO test_mysql (value) VALUES (?)", "test_trans")
-	trans.Update("UPDATE test_mysql SET value = ? WHERE id = 1 LIMIT 1", "test_trans")
+	trans.Insert("INSERT INTO test_mysql_kelp (value) VALUES (?)", "test_trans")
+	trans.Execute("UPDATE test_mysql_kelp SET value = ? WHERE id = 1 LIMIT 1", "test_trans")
 	trans.Commit()
-	res, _ = conn.Select("SELECT * FROM test_mysql ORDER BY id")
-	if len(res) != 2 || res[0]["value"] != "test_trans" {
-		t.Fatal("trans commit result wrong", res)
+	testModel = &TestModel{}
+	if err := conn.QueryOne(testModel, "SELECT * FROM test_mysql_kelp WHERE id = 1 LIMIT 1"); err != nil {
+		t.Fatal("query error", err)
+	}
+	if testModel.Value != "test_trans" {
+		t.Fatal("commit failed", testModel)
 	}
 }
 
@@ -74,7 +91,7 @@ type QueryModel struct {
 }
 
 func TestQuery(t *testing.T) {
-	conn := UseMysql("test")
+	conn := GetConnector("test")
 	conn.Execute("DROP TABLE IF EXISTS test_query")
 	conn.Execute("CREATE TABLE test_query (" +
 		"id INT NOT NULL AUTO_INCREMENT," +
@@ -143,23 +160,4 @@ func TestQuery(t *testing.T) {
 		str, _ := json.Marshal(list)
 		t.Fatal("query one bind wrong", string(str))
 	}
-
-	ret, err := conn.Select("SELECT str, it as its, uit as uits FROM test_query")
-	if err != nil {
-		t.Fatal(err)
-	}
-	for k, v := range ret[0] {
-		t.Log(fmt.Sprintf("%s : (%T)", k, v), v)
-	}
-	out, _ := json.Marshal(ret)
-	t.Log(string(out))
-	ret1, err := conn.Select("SELECT str, it as its, uit as uits FROM test_query WHERE id = ?", 1)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for k, v := range ret1[0] {
-		t.Log(fmt.Sprintf("%s : (%T)", k, v), v)
-	}
-	out1, _ := json.Marshal(ret1)
-	t.Log(string(out1))
 }

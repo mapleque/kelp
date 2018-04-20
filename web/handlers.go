@@ -1,6 +1,7 @@
 package web
 
 import (
+	"strconv"
 	"time"
 )
 
@@ -24,21 +25,22 @@ func LogHandler(c *Context) {
 	end := time.Now()
 	latency := end.Sub(start)
 	method := c.Request.Method
-	status := c.Status
-	httpStatus := c.HttpStatus
 	resp := string(c.Response)
+	req := string(c.Body)
 
 	if raw != "" {
 		path = path + "?" + raw
 	}
 
 	log.Info(
+		"-", // remote ip
 		end.Format("2006/01/02 15:04:05"),
-		latency,
+		latency.Nanoseconds(),
 		method,
 		path,
-		status,
-		httpStatus,
+		"-", // trace id
+		"-", // uuid
+		req,
 		resp,
 	)
 }
@@ -65,6 +67,41 @@ func SessionWithCookieDestoryHandler(cookieSessionKey string) HandlerFunc {
 			c.DestroySession(token)
 		}
 		c.SetCookie(cookieSessionKey, token, -1*time.Second)
+		c.Next()
+	}
+}
+
+func TokenAuthority(token string) HandlerFunc {
+	return func(c *Context) {
+		auth := c.Request.Header.Get("authority")
+		if auth != token {
+			log.Error("[authority failed]", auth)
+			c.DieWithHttpStatus(401)
+		} else {
+			c.Next()
+		}
+	}
+}
+
+func SignCheck(sign string) HandlerFunc {
+	return func(c *Context) {
+		token := c.QueryDefault("token", "")
+		timestamp, err := strconv.ParseInt(c.QueryDefault("timestamp", "0"), 10, 64)
+		if err != nil {
+			c.DieWithHttpStatus(401)
+			return
+		}
+		if timestamp == 0 {
+			if !Sha1Verify([]byte(sign), c.Body, []byte(token), 5) {
+				c.DieWithHttpStatus(401)
+				return
+			}
+		} else {
+			if !Sha1VerifyTimestamp([]byte(sign), c.Body, []byte(token), 5, timestamp) {
+				c.DieWithHttpStatus(401)
+				return
+			}
+		}
 		c.Next()
 	}
 }

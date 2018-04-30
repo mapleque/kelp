@@ -119,7 +119,7 @@ func (this *Router) find(method, path string) (*Router, Params) {
 		return nil, params
 	}
 	// path should not contain chars
-	if strings.ContainsAny(path, "\"\"'%&();+-[]{}:*<>=") {
+	if strings.ContainsAny(path, "\"\"'%&();+[]{}:*<>=") {
 		log.Error("illegal path charactor", path)
 		return nil, params
 	}

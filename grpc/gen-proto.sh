@@ -1,2 +1,3 @@
 #!/bin/sh
-protoc --proto_path=proto/ --go_out=plugins=grpc:. proto/*.proto
+path=$1
+protoc --proto_path=$path --go_out=plugins=grpc:. $path/*.proto

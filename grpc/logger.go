@@ -21,6 +21,8 @@ func init() {
 	log = &logger{}
 }
 
+// SetLogger redirect the log output stream to logger
+// which implement logInerface
 func SetLogger(logger logInterface) {
 	log = logger
 }

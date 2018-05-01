@@ -10,10 +10,12 @@ import (
 	"time"
 )
 
+// New build a grpc server with interceptors
 func New(interceptors ...grpc.UnaryServerInterceptor) *grpc.Server {
 	return grpc.NewServer(grpc.UnaryInterceptor(UnaryInterceptorChain(interceptors...)))
 }
 
+// Run make the grpc server start serve on host
 func Run(gServer *grpc.Server, host string) {
 	reflection.Register(gServer)
 	lis, err := net.Listen("tcp", host)
@@ -26,6 +28,7 @@ func Run(gServer *grpc.Server, host string) {
 	}
 }
 
+// UnaryInterceptorChain wrap interceptors in one interceptor
 func UnaryInterceptorChain(interceptors ...grpc.UnaryServerInterceptor) grpc.UnaryServerInterceptor {
 	return func(c context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
 		handlerChain := handler
@@ -42,6 +45,7 @@ func buildHandler(interceptor grpc.UnaryServerInterceptor, info *grpc.UnaryServe
 	}
 }
 
+// Recovery is an interceptor to recover when request deal panic
 func Recovery(c context.Context, param interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
 	defer func() {
 		if err := recover(); err != nil {
@@ -53,6 +57,7 @@ func Recovery(c context.Context, param interface{}, info *grpc.UnaryServerInfo, 
 	return handler(c, param)
 }
 
+// Logger is an interceptor to log request info
 func Logger(c context.Context, param interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
 	start := time.Now()
 

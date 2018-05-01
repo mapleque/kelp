@@ -18,16 +18,19 @@ var (
 	NO_DATA_TO_BIND  = errors.New("kelp.mysql: no data to bind")
 )
 
-type DB struct {
+// db is sql.DB connector implement Connector
+type db struct {
 	name string
 	conn *sql.DB
 }
 
-type TX struct {
+// tx is sql.Tx connector implement Connector
+type tx struct {
 	name string
 	conn *sql.Tx
 }
 
+// AddDB opens a mysql connection and store it into pool
 func AddDB(name, dsn string, maxOpen, maxIdle int) error {
 	conn, err := sql.Open("mysql", dsn)
 	if err != nil {
@@ -36,32 +39,37 @@ func AddDB(name, dsn string, maxOpen, maxIdle int) error {
 	if err := conn.Ping(); err != nil {
 		return err
 	}
-	pool.pool[name] = &DB{name: name, conn: conn}
+	p.store[name] = &db{name: name, conn: conn}
 	return nil
 }
 
-func (this *DB) Begin() (Connector, error) {
+// Begin start an transaction
+func (this *db) Begin() (Connector, error) {
 	name := this.name + "-" + token()
 	log.Debug(this.name, "begin", name)
 	conn, err := this.conn.Begin()
 	if err != nil {
 		return nil, err
 	}
-	tx := &TX{name: name, conn: conn}
+	tx := &tx{name: name, conn: conn}
 	return tx, nil
 }
 
-func (this *DB) Commit() error {
+// Commit is not allow to query connector
+func (this *db) Commit() error {
 	log.Error(this.name, "commit", METHOD_NOT_ALLOW)
 	return METHOD_NOT_ALLOW
 }
 
-func (this *DB) Rollback() error {
+// Rollback is not allow to qurey connector.
+func (this *db) Rollback() error {
 	log.Error(this.name, "rollback", METHOD_NOT_ALLOW)
 	return METHOD_NOT_ALLOW
 }
 
-func (this *DB) Query(destList interface{}, sql string, params ...interface{}) error {
+// Query select a set of data and bind into a dest list.
+// The destList should be an pointor of slice assembled by data model.
+func (this *db) Query(destList interface{}, sql string, params ...interface{}) error {
 	log.Debug(this.name, "query", sql, params)
 	stmt, err := this.conn.Prepare(sql)
 	if err != nil {
@@ -75,7 +83,9 @@ func (this *DB) Query(destList interface{}, sql string, params ...interface{}) e
 	return scanQueryRows(destList, rows)
 }
 
-func (this *DB) QueryOne(destObject interface{}, sql string, params ...interface{}) error {
+// QueryOne select one data and bind into a dest object.
+// The destOjbect should be an pointer of data model.
+func (this *db) QueryOne(destObject interface{}, sql string, params ...interface{}) error {
 	log.Debug(this.name, "queryone", sql, params)
 	stmt, err := this.conn.Prepare(sql)
 	if err != nil {
@@ -89,7 +99,8 @@ func (this *DB) QueryOne(destObject interface{}, sql string, params ...interface
 	return scanQueryOne(destObject, rows)
 }
 
-func (this *DB) Insert(sql string, params ...interface{}) (int64, error) {
+// Insert executes an insert sql and returns last insert id.
+func (this *db) Insert(sql string, params ...interface{}) (int64, error) {
 	log.Debug(this.name, "insert", sql, params)
 	ret, err := this.conn.Exec(sql, params...)
 	if err != nil {
@@ -98,7 +109,8 @@ func (this *DB) Insert(sql string, params ...interface{}) (int64, error) {
 	return ret.LastInsertId()
 }
 
-func (this *DB) Execute(sql string, params ...interface{}) (int64, error) {
+// Execute executes a sql and returns effected rows.
+func (this *db) Execute(sql string, params ...interface{}) (int64, error) {
 	log.Debug(this.name, "execute", sql, params)
 	ret, err := this.conn.Exec(sql, params...)
 	if err != nil {
@@ -106,19 +118,28 @@ func (this *DB) Execute(sql string, params ...interface{}) (int64, error) {
 	}
 	return ret.RowsAffected()
 }
-func (this *TX) Begin() (Connector, error) {
+
+// Begin is not allow to transaction connector.
+func (this *tx) Begin() (Connector, error) {
 	log.Error(this.name, "begin", METHOD_NOT_ALLOW)
 	return nil, METHOD_NOT_ALLOW
 }
-func (this *TX) Commit() error {
+
+// Commit commits a transaction
+func (this *tx) Commit() error {
 	log.Debug(this.name, "commit")
 	return this.conn.Commit()
 }
-func (this *TX) Rollback() error {
+
+// Rollback rollback a transaction
+func (this *tx) Rollback() error {
 	log.Debug(this.name, "rollback")
 	return this.conn.Rollback()
 }
-func (this *TX) Query(destList interface{}, sql string, params ...interface{}) error {
+
+// Query select a set of data and bind into a dest list.
+// The destList should be an pointor of slice assembled by data model.
+func (this *tx) Query(destList interface{}, sql string, params ...interface{}) error {
 	log.Debug(this.name, "query", sql, params)
 	stmt, err := this.conn.Prepare(sql)
 	if err != nil {
@@ -131,7 +152,10 @@ func (this *TX) Query(destList interface{}, sql string, params ...interface{}) e
 	}
 	return scanQueryRows(destList, rows)
 }
-func (this *TX) QueryOne(destObject interface{}, sql string, params ...interface{}) error {
+
+// QueryOne select one data and bind into a dest object.
+// The destOjbect should be an pointer of data model.
+func (this *tx) QueryOne(destObject interface{}, sql string, params ...interface{}) error {
 	log.Debug(this.name, "queryone", sql, params)
 	stmt, err := this.conn.Prepare(sql)
 	if err != nil {
@@ -144,7 +168,9 @@ func (this *TX) QueryOne(destObject interface{}, sql string, params ...interface
 	}
 	return scanQueryOne(destObject, rows)
 }
-func (this *TX) Insert(sql string, params ...interface{}) (lastInsertId int64, err error) {
+
+// Insert executes an insert sql and returns last insert id.
+func (this *tx) Insert(sql string, params ...interface{}) (lastInsertId int64, err error) {
 	log.Debug(this.name, "insert", sql, params)
 	ret, err := this.conn.Exec(sql, params...)
 	if err != nil {
@@ -152,7 +178,9 @@ func (this *TX) Insert(sql string, params ...interface{}) (lastInsertId int64, e
 	}
 	return ret.LastInsertId()
 }
-func (this *TX) Execute(sql string, params ...interface{}) (int64, error) {
+
+// Execute executes a sql and returns effected rows.
+func (this *tx) Execute(sql string, params ...interface{}) (int64, error) {
 	log.Debug(this.name, "execute", sql, params)
 	ret, err := this.conn.Exec(sql, params...)
 	if err != nil {
@@ -345,7 +373,7 @@ func scanQueryOne(dest interface{}, rows *sql.Rows) error {
 	return nil
 }
 
-// 类型转换，任何类型转成int
+// ToInt convert type to int
 func ToInt(param interface{}) int {
 	switch ret := param.(type) {
 	case int:
@@ -373,7 +401,7 @@ func ToInt(param interface{}) int {
 	}
 }
 
-// 类型转换，任何类型转成int64
+// ToInt64 convert type to int64
 func ToInt64(param interface{}) int64 {
 	switch ret := param.(type) {
 	case int:
@@ -401,7 +429,7 @@ func ToInt64(param interface{}) int64 {
 	}
 }
 
-// 类型转换，类型转换成float
+// ToFloat convert type to float64
 func ToFloat(param interface{}) float64 {
 	switch ret := param.(type) {
 	case int64:
@@ -427,7 +455,7 @@ func ToFloat(param interface{}) float64 {
 	}
 }
 
-// 类型转换，任何类型转成bool
+// ToBool convert type to bool
 func ToBool(param interface{}) bool {
 	switch ret := param.(type) {
 	case bool:
@@ -469,7 +497,7 @@ func ToBool(param interface{}) bool {
 	}
 }
 
-// 类型转换，任何类型转成string
+// ToString convert type to string
 func ToString(param interface{}) string {
 	switch ret := param.(type) {
 	case string:

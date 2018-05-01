@@ -1,7 +1,7 @@
 GRPC
 ====
 
-[![GoDoc](https://godoc.org/github.com/mapleque/kelp/jwt?status.svg)](https://godoc.org/github.com/mapleque/kelp/jwt)
+[![GoDoc](https://godoc.org/github.com/mapleque/kelp/grpc?status.svg)](https://godoc.org/github.com/mapleque/kelp/grpc)
 
 Reference
 ====

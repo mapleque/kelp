@@ -1,82 +1,12 @@
-package mysql
+package mysql_test
 
 import (
 	"encoding/json"
-	"flag"
 	"testing"
 	"time"
+
+	"github.com/mapleque/kelp/mysql"
 )
-
-func init() {
-	dsn := flag.String("mysql", "www:www@tcp(127.0.0.1:3306)/test?charset=utf8", "mysql dsn")
-	flag.Parse()
-	AddDB(
-		"test",
-		*dsn,
-		1, 1,
-	)
-}
-
-type TestModel struct {
-	Id    int64
-	Value string
-}
-
-func TestMysql(t *testing.T) {
-	conn := GetConnector("test")
-	if _, err := conn.Execute("DROP TABLE IF EXISTS test_mysql_kelp"); err != nil {
-		t.Fatal("drop table failed", err)
-	}
-	if _, err := conn.Execute("CREATE TABLE test_mysql_kelp (" +
-		"id INT NOT NULL AUTO_INCREMENT," +
-		"value VARCHAR(10) DEFAULT NULL," +
-		"PRIMARY KEY (id))"); err != nil {
-		t.Fatal("create table failed", err)
-	}
-	lastId, _ := conn.Insert("INSERT INTO test_mysql_kelp (value) VALUES (?)", "test_data")
-	if lastId != 1 {
-		t.Fatal("last insert id wrong", lastId)
-	}
-	ignoreId, _ := conn.Insert("INSERT IGNORE INTO test_mysql_kelp VALUES (1,?)", "test_data")
-	if ignoreId != 0 {
-		t.Fatal("ignore insert id wrong", ignoreId)
-	}
-	affectRow, _ := conn.Execute("UPDATE test_mysql_kelp SET value = ? WHERE id = 1 LIMIT 1", "test_other")
-	if affectRow != 1 {
-		t.Fatal("affect row wrong", affectRow)
-	}
-	testModel := &TestModel{}
-	if err := conn.QueryOne(testModel, "SELECT * FROM test_mysql_kelp WHERE id = 1 LIMIT 1"); err != nil {
-		t.Fatal("query error", err)
-	}
-	if testModel.Value != "test_other" {
-		t.Fatal("update failed", testModel)
-	}
-
-	trans, _ := conn.Begin()
-	trans.Insert("INSERT INTO test_mysql_kelp (value) VALUES (?)", "test_trans")
-	trans.Execute("UPDATE test_mysql_kelp SET value = ? WHERE id = 1 LIMIT 1", "test_trans")
-	trans.Rollback()
-	testModel = &TestModel{}
-	if err := conn.QueryOne(testModel, "SELECT * FROM test_mysql_kelp WHERE id = 1 LIMIT 1"); err != nil {
-		t.Fatal("query error", err)
-	}
-	if testModel.Value == "test_trans" {
-		t.Fatal("rollback failed", testModel)
-	}
-
-	trans, _ = conn.Begin()
-	trans.Insert("INSERT INTO test_mysql_kelp (value) VALUES (?)", "test_trans")
-	trans.Execute("UPDATE test_mysql_kelp SET value = ? WHERE id = 1 LIMIT 1", "test_trans")
-	trans.Commit()
-	testModel = &TestModel{}
-	if err := conn.QueryOne(testModel, "SELECT * FROM test_mysql_kelp WHERE id = 1 LIMIT 1"); err != nil {
-		t.Fatal("query error", err)
-	}
-	if testModel.Value != "test_trans" {
-		t.Fatal("commit failed", testModel)
-	}
-}
 
 type QueryModel struct {
 	Id    int
@@ -91,7 +21,7 @@ type QueryModel struct {
 }
 
 func TestQuery(t *testing.T) {
-	conn := GetConnector("test")
+	conn := mysql.Get("test")
 	conn.Execute("DROP TABLE IF EXISTS test_query")
 	conn.Execute("CREATE TABLE test_query (" +
 		"id INT NOT NULL AUTO_INCREMENT," +

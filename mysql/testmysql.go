@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+// TestDB is a mock db connector
+// which only log out the sql.
 type TestDB struct{}
 
 func NewTestDB() *TestDB {
@@ -41,6 +43,8 @@ func (this *TestDB) Execute(sql string, params ...interface{}) (int64, error) {
 	return 1, nil
 }
 
+// InitTestDB is a mysql helper used for build a test database with sql schema.
+// This usually used in unittest to initial a test database with service's table created.
 func InitTestDB(name, dsn, schemaDir string) {
 	if err := AddDB(
 		name,
@@ -66,7 +70,7 @@ func InitTestDB(name, dsn, schemaDir string) {
 			}
 			for _, sql := range strings.Split(string(schemaSql), ";") {
 				if len(strings.TrimSpace(sql)) > 0 {
-					if _, err := GetConnector(name).Execute(sql); err != nil {
+					if _, err := Get(name).Execute(sql); err != nil {
 						panic(err)
 					}
 				}

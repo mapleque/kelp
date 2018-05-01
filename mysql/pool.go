@@ -1,5 +1,13 @@
 package mysql
 
+// pool is mysql connection pool
+// which to hold all mysql connection in a service
+type pool struct {
+	store map[string]Connector
+}
+
+// Connector is mysql database connector inerface
+// implement by query and transaction
 type Connector interface {
 	Begin() (Connector, error)
 	Commit() error
@@ -10,19 +18,22 @@ type Connector interface {
 	Execute(sql string, params ...interface{}) (affectRows int64, err error)
 }
 
-type _Pool struct {
-	pool map[string]Connector
-}
-
-var pool *_Pool
+// p used as a connection pool storage
+var p *pool
 
 func init() {
-	if pool != nil {
+	if p != nil {
 		return
 	}
-	pool = &_Pool{make(map[string]Connector)}
+	p = &pool{make(map[string]Connector)}
 }
 
-func GetConnector(name string) Connector {
-	return pool.pool[name]
+// Get return a Connector which have been added into pool
+func Get(name string) Connector {
+	return p.store[name]
+}
+
+// Add store a connector into pool
+func Add(name string, conn Connector) {
+	p.store[name] = conn
 }

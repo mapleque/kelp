@@ -18,6 +18,7 @@ package log
 // AddSizeRotateLogger会按照文件大小切分轮转
 // AddDateRotateLogger会按照日期切分轮转
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -66,6 +67,14 @@ type Logger struct {
 	lastWriteTime time.Time
 }
 
+type LoggerInterface interface {
+	Debug(...interface{})
+	Fatal(...interface{})
+	Error(...interface{})
+	Warn(...interface{})
+	Info(...interface{})
+}
+
 // Log 全局变量
 var Log *LogPool
 var LogCallstack bool = true
@@ -74,7 +83,6 @@ func init() {
 	if Log != nil {
 		return
 	}
-	Info("init log module...")
 	Log = &LogPool{}
 	Log.Pool = make(map[string]*Logger)
 
@@ -94,7 +102,8 @@ func AddSizeRotateLogger(
 	name, path string,
 	maxNumber int, maxSize int64,
 	maxLevel int, minLevel int) {
-	Info("add logger", name, path)
+
+	fmt.Println("add logger", name, path)
 	logger := &Logger{
 		path:     path,
 		filename: name,
@@ -148,6 +157,13 @@ func baseLog(level int, prefix string, msg ...interface{}) {
 	}
 }
 
+func Get(name string) LoggerInterface {
+	if log, exist := Log.Pool[name]; exist {
+		return log
+	}
+	return Log
+}
+
 func Debug(msg ...interface{}) {
 	baseLog(DEBUG, "[DEBUG]", msg...)
 	Callstack(DEBUG)
@@ -180,8 +196,11 @@ func Callstack(level int) {
 	}
 }
 
-func (lp *LogPool) Get(name string) *Logger {
-	return lp.Pool[name]
+func (lp *LogPool) Get(name string) LoggerInterface {
+	if log, exist := lp.Pool[name]; exist {
+		return log
+	}
+	return lp
 }
 
 func (lp *LogPool) Debug(msg ...interface{}) {
@@ -248,6 +267,12 @@ func (lg *Logger) Warn(msg ...interface{}) {
 func (lg *Logger) Error(msg ...interface{}) {
 	lg.log(ERROR, "[ERROR]", msg...)
 	lg.Callstack(ERROR)
+}
+
+func (lg *Logger) Fatal(msg ...interface{}) {
+	lg.log(FATAL, "[FATAL]", msg...)
+	lg.Callstack(FATAL)
+	os.Exit(1)
 }
 
 func (lg *Logger) Callstack(level int) {
@@ -334,17 +359,20 @@ func fileSize(file string) int64 {
 func openFile(path, filename string) *os.File {
 	pathInfo, err := os.Stat(path)
 	if err != nil {
-		Fatal("log path config error", err.Error())
+		fmt.Println("log path config error", err.Error())
+		os.Exit(2)
 	}
 	if !pathInfo.IsDir() {
-		Fatal("log path [" + path + "] is not a dir")
+		fmt.Println("log path [" + path + "] is not a dir")
+		os.Exit(2)
 	}
 	logFile, err := os.OpenFile(
 		path+"/"+filename,
 		os.O_RDWR|os.O_APPEND|os.O_CREATE,
 		0666)
 	if err != nil {
-		Fatal("open log file error", err.Error())
+		fmt.Println("open log file error", err.Error())
+		os.Exit(2)
 	}
 	return logFile
 }

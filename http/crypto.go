@@ -1,8 +1,9 @@
-package web
+package http
 
 import (
 	"bytes"
 	"crypto/aes"
+	"crypto/cipher"
 	"crypto/md5"
 	"crypto/rand"
 	"crypto/rsa"
@@ -92,6 +93,36 @@ func AesEcbDecrypt(key, src []byte) ([]byte, error) {
 	return res, nil
 }
 
+func AesCbcEncrypt(key, iv, src []byte) ([]byte, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+	blockMode := cipher.NewCBCEncrypter(block, iv)
+
+	blockSize := block.BlockSize()
+	data := _PKCS5Padding(src, blockSize)
+
+	dst := make([]byte, len(data))
+	blockMode.CryptBlocks(dst, data)
+
+	return dst, nil
+}
+
+func AesCbcDecrypt(key, iv, src []byte) ([]byte, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+	blockMode := cipher.NewCBCDecrypter(block, iv)
+
+	dst := make([]byte, len(src))
+	blockMode.CryptBlocks(dst, src)
+
+	res := _PKCS5UnPadding(dst)
+	return res, nil
+}
+
 func _PKCS5Padding(data []byte, blockSize int) []byte {
 	padding := blockSize - len(data)%blockSize
 	padtext := bytes.Repeat([]byte{byte(padding)}, padding)
@@ -147,6 +178,24 @@ func Base64Encode(src []byte) []byte {
 func Base64Decode(src []byte) []byte {
 	dst := make([]byte, base64.StdEncoding.DecodedLen(len(src)))
 	base64.URLEncoding.Decode(dst, src)
+	for dst[len(dst)-1] == 0 {
+		dst = dst[:len(dst)-1]
+	}
+	return dst
+}
+
+func Base64StdEncode(src []byte) []byte {
+	dst := make([]byte, base64.StdEncoding.EncodedLen(len(src)))
+	base64.StdEncoding.Encode(dst, src)
+	return dst
+}
+
+func Base64StdDecode(src []byte) []byte {
+	dst := make([]byte, base64.StdEncoding.DecodedLen(len(src)))
+	base64.StdEncoding.Decode(dst, src)
+	for dst[len(dst)-1] == 0 {
+		dst = dst[:len(dst)-1]
+	}
 	return dst
 }
 
@@ -186,7 +235,7 @@ func Sha1Verify(key, data, sign []byte, maxDelaySecond int) bool {
 }
 
 func Sha1VerifyTimestamp(key, data, sign []byte, maxDelaySecond, timestamp int64) bool {
-	if timestamp + maxDelaySecond < time.Now().Unix() {
+	if timestamp+maxDelaySecond < time.Now().Unix() {
 		return false
 	}
 	body := Base64Encode(data)

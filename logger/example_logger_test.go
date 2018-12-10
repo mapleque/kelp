@@ -47,7 +47,7 @@ func Example_tagOutput() {
 	errorLogger.SetOutput(false).SetTagOutput(logger.ERROR, true)
 }
 
-func Exampe_callstack() {
+func Example_callstack() {
 	accessLogger := logger.Add("access_log", "/tmp/access_log.log")
 	// only output callstack in ERROR log
 	accessLogger.WithCallstack(false).WithTagCallstack(logger.ERROR, true)

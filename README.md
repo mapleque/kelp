@@ -3,9 +3,9 @@ Kelp
 
 Go package lib.
 
-- [http](./http) Http(s) server, handlers and client
-- [grpc](./grpc) Grpc server and handlers
-- [mysql](./mysql) mysql connection pool, api and sql helper
-- [log](./log) log with rotate and level
+- [http](./http) http server and client
+- [mysql](./mysql) mysql api and pool
+- [logger](./logger) logger with rotate and tag
 - [config](./config) configure loading tools
 - [jwt](./jwt) Json Web Tokens
+- [grpc](./grpc) Grpc server and handlers

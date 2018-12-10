@@ -1,5 +1,6 @@
 Logger Package
 ====
+[![godoc reference](https://godoc.org/github.com/mapleque/kelp/logger?status.svg)](http://godoc.org/pkg/github.com/mapleque/kelp/logger)
 
 本组建主要用于简化在程序中输出日志的复杂度，提供一些简单的输出日志接口和配置接口。
 

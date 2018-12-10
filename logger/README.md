@@ -88,7 +88,7 @@ accessLogger.SetRotateFiles(2)
 accessLogger.SetTagOutput(logger.DEBUG, false)
 
 // only output ERROR log
-errorLogger.SetOutput(false).SetTagOut(logger.ERROR, true)
+errorLogger.SetOutput(false).SetTagOutput(logger.ERROR, true)
 ```
 
 其中是否输出某个tag的日志，由当前输出语句前最后一次调用的设置决定。

@@ -24,7 +24,7 @@ func (this *TodoList) Create(title, content, alertTime string) error {
 	this.lastId += 1
 	id := this.lastId
 	if _, exist := this.data[id]; exist {
-		return fmt.Errorf("duplicate id %s", id)
+		return fmt.Errorf("duplicate id %d", id)
 	}
 	this.data[id] = &Todo{
 		id,
@@ -37,7 +37,7 @@ func (this *TodoList) Create(title, content, alertTime string) error {
 
 func (this *TodoList) Update(id int, title, content, alertTime string) error {
 	if _, exist := this.data[id]; !exist {
-		return fmt.Errorf("id is not exist %s", id)
+		return fmt.Errorf("id is not exist %d", id)
 	}
 	this.data[id] = &Todo{
 		id,
@@ -50,7 +50,7 @@ func (this *TodoList) Update(id int, title, content, alertTime string) error {
 
 func (this *TodoList) Delete(id int) error {
 	if _, exist := this.data[id]; !exist {
-		return fmt.Errorf("id is not exist %s", id)
+		return fmt.Errorf("id is not exist %d", id)
 	}
 	delete(this.data, id)
 	return nil

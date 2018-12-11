@@ -4,6 +4,9 @@ import (
 	"strings"
 )
 
+// Router Router is a tree indexing by path,
+// holding the handler chain for request processing.
+// The root is Router with `/` path and children are Routers with subpath.
 type Router struct {
 	title        string
 	comment      string
@@ -14,6 +17,8 @@ type Router struct {
 	children     []*Router
 }
 
+// Group Group is a Router node, which children are Routers.
+// Every Router can create Groups as children.
 func (this *Router) Group(path string) *Router {
 	router := &Router{
 		path:         path,
@@ -25,6 +30,7 @@ func (this *Router) Group(path string) *Router {
 	return router
 }
 
+// Use Use register a middleware on the Router, which will work on all children.
 func (this *Router) Use(handler HandlerFunc) *Router {
 	this.handlerChain = append(this.handlerChain, handler)
 	for _, router := range this.children {
@@ -33,6 +39,7 @@ func (this *Router) Use(handler HandlerFunc) *Router {
 	return this
 }
 
+// Handle Handle register a handler on the Router.
 func (this *Router) Handle(title, path string, handlers ...HandlerFunc) *Router {
 	if len(path) < 1 || path[0] != '/' || strings.Contains(path, "//") {
 		panic("add router faild, invalid path " + path)
@@ -65,6 +72,7 @@ func (this *Router) Handle(title, path string, handlers ...HandlerFunc) *Router 
 	return router
 }
 
+// Comment Comment add comment on Router, using in doc.
 func (this *Router) Comment(comment string) *Router {
 	this.comment = comment
 	return this

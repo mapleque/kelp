@@ -63,7 +63,8 @@ func LogHandler(c *Context) {
 		path = path + "?" + raw
 	}
 
-	log.Info(
+	log.Log(
+		"REQ",
 		ip, // remote ip
 		end.Format("2006/01/02 15:04:05"),
 		latency.Nanoseconds()/int64(time.Millisecond),
@@ -71,8 +72,8 @@ func LogHandler(c *Context) {
 		str(path),
 		str(traceId), // trace id
 		str(uuid),    // uuid
-		str(req),
-		str(resp),
+		`"""`+str(req)+`"""`,
+		`"""`+str(resp)+`"""`,
 	)
 }
 

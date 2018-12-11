@@ -4,38 +4,29 @@ import (
 	syslog "log"
 )
 
-// 实现一个简单的logger，记录相关信息
-// 用户可以通过SetLogger方法重定向log输出
-// logger只要实现分级输出方法即可
-
-type logInterface interface {
-	Debug(msg ...interface{})
-	Info(msg ...interface{})
+type loggerer interface {
+	Log(tag string, msg ...interface{})
 	Error(msg ...interface{})
-	Warn(msg ...interface{})
+	Debug(msg ...interface{})
 }
 
 type logger struct{}
 
-var log logInterface
+var log loggerer
 
 func init() {
 	log = &logger{}
 }
 
-func SetLogger(logger logInterface) {
+func SetLogger(logger loggerer) {
 	log = logger
 }
 
+func (lg *logger) Log(tag string, msg ...interface{}) {
+	syslog.Println(append([]interface{}{tag}, msg...))
+}
+
 func (lg *logger) Debug(msg ...interface{}) {
-	syslog.Println(msg...)
-}
-
-func (lg *logger) Info(msg ...interface{}) {
-	syslog.Println(msg...)
-}
-
-func (lg *logger) Warn(msg ...interface{}) {
 	syslog.Println(msg...)
 }
 

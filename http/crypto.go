@@ -114,7 +114,10 @@ func AesCbcDecrypt(key, iv, src []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	iv = _PKCS5Padding(iv, block.BlockSize())
 	blockMode := cipher.NewCBCDecrypter(block, iv)
+
+	src = _PKCS5Padding(src, block.BlockSize())
 
 	dst := make([]byte, len(src))
 	blockMode.CryptBlocks(dst, src)
@@ -124,7 +127,11 @@ func AesCbcDecrypt(key, iv, src []byte) ([]byte, error) {
 }
 
 func _PKCS5Padding(data []byte, blockSize int) []byte {
-	padding := blockSize - len(data)%blockSize
+	paddingNumber := len(data) % blockSize
+	if paddingNumber == 0 {
+		return data
+	}
+	padding := blockSize - paddingNumber
 	padtext := bytes.Repeat([]byte{byte(padding)}, padding)
 	return append(data, padtext...)
 }

@@ -128,6 +128,9 @@ func processHandlerFunc(handlerFunc interface{}, c *Context) {
 		panic("illegal handler define: " + handler.String())
 	}
 	ret := handler.Call(args)
+	if c.ManuResponse {
+		return
+	}
 	if len(ret) < 1 {
 		if hasResponse {
 			c.Json(map[string]interface{}{

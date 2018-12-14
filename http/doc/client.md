@@ -59,3 +59,10 @@ status, err := myService.RequestKelp("/hello", in, out, lastContext)
 
 当请求失败时，status和err都可能非空，注意分情况判断。
 如果status非空，那么它一定是server中定义的Status对象（这里要求Handler的返回值必须使用kelp/http包提供的Status的形式定义）。
+
+相关链接
+----
+
+- [阅读上一章：日志](/http/doc/logger.md)
+- [返回包简介](/http/README.md)
+- [返回示例example讲解](/http/example/README.md)

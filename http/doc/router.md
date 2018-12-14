@@ -85,6 +85,6 @@ func UserMobileGetHandler(in interface{}, out *UserMobileResponse) *http.Status{
 相关链接
 ----
 
-- [阅读下一章：middleware](/http/doc/middleware.md)
+- [阅读下一章：Handler & 中间件](/http/doc/handler.md)
 - [返回包简介](/http/README.md)
 - [返回示例example讲解](/http/example/README.md)

@@ -76,37 +76,3 @@ func LogHandler(c *Context) {
 		`"""`+str(resp)+`"""`,
 	)
 }
-
-func TokenAuthorization(token string) HandlerFunc {
-	return func(c *Context) {
-		auth := c.Request.Header.Get("Authorization")
-		if auth != token {
-			c.DieWithHttpStatus(401)
-		} else {
-			c.Next()
-		}
-	}
-}
-
-func SignCheck(sign string) HandlerFunc {
-	return func(c *Context) {
-		token := c.QueryDefault("token", "")
-		timestamp, err := strconv.ParseInt(c.QueryDefault("timestamp", "0"), 10, 64)
-		if err != nil {
-			c.DieWithHttpStatus(401)
-			return
-		}
-		if timestamp == 0 {
-			if !Sha1Verify([]byte(sign), c.Body(), []byte(token), 5) {
-				c.DieWithHttpStatus(401)
-				return
-			}
-		} else {
-			if !Sha1VerifyTimestamp([]byte(sign), c.Body(), []byte(token), 5, timestamp) {
-				c.DieWithHttpStatus(401)
-				return
-			}
-		}
-		c.Next()
-	}
-}

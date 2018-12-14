@@ -1,7 +1,11 @@
 package http
 
 import (
+	"bytes"
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
+	"math/rand"
 	"strconv"
 	"strings"
 	"time"
@@ -10,7 +14,7 @@ import (
 // TraceHandler
 // If you want start trace, use this on your root router
 func TraceHandler(c *Context) {
-	c.Request.Header.Set("Kelp-Traceid", RandMd5())
+	c.Request.Header.Set("Kelp-Traceid", randMd5())
 	c.Next()
 }
 
@@ -22,13 +26,6 @@ func RecoveryHandler(c *Context) {
 		}
 	}()
 	c.Next()
-}
-
-func str(v string) string {
-	if v == "" {
-		return "-"
-	}
-	return v
 }
 
 func LogHandler(c *Context) {
@@ -75,4 +72,25 @@ func LogHandler(c *Context) {
 		`"""`+str(req)+`"""`,
 		`"""`+str(resp)+`"""`,
 	)
+}
+
+func str(v string) string {
+	if v == "" {
+		return "-"
+	}
+	return v
+}
+
+func randMd5() string {
+	timestamp := []byte(strconv.FormatInt(time.Now().Unix(), 10))
+	prefix := []byte(strconv.Itoa(rand.Intn(10000)))
+	surfix := []byte(strconv.Itoa(rand.Intn(10000)))
+	seed := bytes.Join([][]byte{prefix, timestamp, surfix}, []byte(""))
+
+	h := md5.New()
+	h.Write(seed)
+	data := h.Sum(nil)
+	dst := make([]byte, hex.EncodedLen(len(data)))
+	hex.Encode(dst, data)
+	return string(dst)
 }

@@ -68,7 +68,7 @@ func (this *Router) Handle(title, path string, handlers ...HandlerFunc) *Router 
 		children:     []*Router{},
 	}
 	this.children = append(this.children, router)
-	log.Debug("add router", router.realPath)
+	log.Log("DEBUG", "add router", router.realPath)
 	return router
 }
 
@@ -92,12 +92,12 @@ func (this *Router) find(path string) *Router {
 	//	5. "/xxx/xxx/"
 	//	6. ...
 	if len(path) < 1 || path[0] != '/' || strings.HasPrefix(path, "//") {
-		log.Debug("invalid path", path)
+		log.Log("DEBUG", "invalid path", path)
 		return nil
 	}
 	// path should not contain chars
 	if strings.ContainsAny(path, "\"\"'%&();+[]{}:*<>=") {
-		log.Debug("illegal path charactor", path)
+		log.Log("DEBUG", "illegal path charactor", path)
 		return nil
 	}
 	sepIndex := strings.Index(path[1:], "/") + 1

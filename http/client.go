@@ -144,7 +144,6 @@ func (this *KelpClient) RequestKelp(path string, in interface{}, out interface{}
 
 	_, responseBody, err := this.Do(req)
 	if err != nil {
-		log.Error(err)
 		return nil, err
 	}
 

@@ -17,7 +17,7 @@ func TraceHandler(c *Context) {
 func RecoveryHandler(c *Context) {
 	defer func() {
 		if err := recover(); err != nil {
-			log.Error("[panic]", err)
+			log.Log("ERROR", "[panic]", err)
 			c.DieWithHttpStatus(500)
 		}
 	}()
@@ -81,7 +81,6 @@ func TokenAuthorization(token string) HandlerFunc {
 	return func(c *Context) {
 		auth := c.Request.Header.Get("Authorization")
 		if auth != token {
-			log.Error("[authorization failed]", auth)
 			c.DieWithHttpStatus(401)
 		} else {
 			c.Next()

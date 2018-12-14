@@ -6,8 +6,6 @@ import (
 
 type loggerer interface {
 	Log(tag string, msg ...interface{})
-	Error(msg ...interface{})
-	Debug(msg ...interface{})
 }
 
 type logger struct{}
@@ -26,10 +24,18 @@ func (lg *logger) Log(tag string, msg ...interface{}) {
 	syslog.Println(append([]interface{}{tag}, msg...))
 }
 
-func (lg *logger) Debug(msg ...interface{}) {
-	syslog.Println(msg...)
+func Info(msg ...interface{}) {
+	log.Log("INFO", msg...)
 }
 
-func (lg *logger) Error(msg ...interface{}) {
-	syslog.Println(msg...)
+func Warn(msg ...interface{}) {
+	log.Log("WARN", msg...)
+}
+
+func Error(msg ...interface{}) {
+	log.Log("ERROR", msg...)
+}
+
+func Debug(msg ...interface{}) {
+	log.Log("DEBUG", msg...)
 }

@@ -9,7 +9,8 @@ import (
 )
 
 type docBuilder struct {
-	apiDocs []*apiDoc
+	subscribe string
+	apiDocs   []*apiDoc
 }
 
 type apiDoc struct {
@@ -30,6 +31,7 @@ type defaultSuccessResponse struct {
 func (this *Server) Doc(path string) {
 	db := &docBuilder{}
 	db.buildRouterDoc(this.router)
+	db.subscribe = this.comment
 	db.output(path)
 }
 
@@ -44,7 +46,11 @@ func (this *docBuilder) output(path string) {
 			panic(err)
 		}
 	}
-	fmt.Fprintln(file, "# 接口文档")
+	if this.subscribe == "" {
+		fmt.Fprintln(file, "# 接口文档")
+	} else {
+		fmt.Fprintln(file, this.subscribe)
+	}
 	for _, apiDoc := range this.apiDocs {
 		fmt.Fprintln(file)
 		fmt.Fprintln(file, "##", apiDoc.title)

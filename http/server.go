@@ -16,8 +16,9 @@ var (
 )
 
 type Server struct {
-	host   string
-	router *Router
+	host    string
+	router  *Router
+	comment string
 
 	start time.Time
 }
@@ -79,6 +80,10 @@ func (this *Server) Use(handler HandlerFunc) *Router {
 
 func (this *Server) Handle(comment, path string, handler ...HandlerFunc) *Router {
 	return this.router.Handle(comment, path, handler...)
+}
+
+func (this *Server) Comment(comment string) {
+	this.comment = comment
 }
 
 func (this *Server) metric(c *Context) {

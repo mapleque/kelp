@@ -52,13 +52,13 @@ func init() {
 // New Create a Logger.
 // If filepath is empty, it will output to stdout.
 // By default, it will rotate by size limit and file limit.
-// Call SetRotateSize method to change size limit, default 10M.
-// Call SetRotateFiles method to change file limit, default 2.
+// Call SetRotateSize method to change size limit, default 100M.
+// Call SetRotateFiles method to change file limit, default 1.
 func New(filepath string) *Logger {
 	logger := &Logger{
 		filepath:         filepath,
-		rotateSize:       10 * 1024 * 1024,
-		rotateFiles:      2,
+		rotateSize:       100 * 1024 * 1024,
+		rotateFiles:      1,
 		outputSetting:    newTagSetting().SetAll(true),
 		callstackSetting: newTagSetting().SetAll(false).Set(FATAL, true).Set(ERROR, true).Set(WARN, true).Set(DEBUG, true),
 

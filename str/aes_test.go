@@ -10,7 +10,8 @@ const (
 	encodingIv  = "AAAAAAAAAAAAAAAAAAAAAA=="
 )
 
-func Example_aesecb() {
+func Example_aesEcb() {
+	encodingKey := "bVpxYlg0MzNNN05XQ3ZYY09nUGJGR1JtRENVbDh2a24="
 	data := "Hello kelp aes ecb!"
 
 	// decode key
@@ -33,7 +34,9 @@ func Example_aesecb() {
 	// target data: Hello kelp aes ecb!
 }
 
-func Example_aescbc() {
+func Example_aesCbc() {
+	encodingKey = "bVpxYlg0MzNNN05XQ3ZYY09nUGJGR1JtRENVbDh2a24="
+	encodingIv = "AAAAAAAAAAAAAAAAAAAAAA=="
 	data := "Hello kelp aes cbc!"
 
 	// decode key

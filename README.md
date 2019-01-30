@@ -8,3 +8,4 @@ Go package lib.
 - [logger](./logger) logger with rotate and tag
 - [config](./config) configure loading tools
 - [grpc](./grpc) Grpc server and handlers
+- [str](./str) string utils

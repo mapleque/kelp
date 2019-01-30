@@ -1,18 +1,19 @@
-package bytes
+package str
 
 import (
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
+	"errors"
 )
 
-func AesEcbEncrypt(key, src []byte) ([]byte, error) {
+func AesEcbEncrypt(key []byte, src string) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
 	}
 	blockSize := block.BlockSize()
-	data := _PKCS5Padding(src, blockSize)
+	data := PKCS5Padding([]byte(src), blockSize)
 	dst := make([]byte, 0)
 	tmp := make([]byte, block.BlockSize())
 	for len(data) > 0 {
@@ -24,16 +25,19 @@ func AesEcbEncrypt(key, src []byte) ([]byte, error) {
 	return dst, nil
 }
 
-func AesEcbDecrypt(key, src []byte) ([]byte, error) {
+func AesEcbDecrypt(key, src []byte) (string, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	blockSize := block.BlockSize()
 	dst := make([]byte, 0)
 	tmp := make([]byte, blockSize)
 
-	data := _PKCS5Padding(src, blockSize)
+	data := src
+	if len(data)%blockSize != 0 {
+		return "", errors.New("[kelp.str] aes ecb descrypt faild: data not full block")
+	}
 
 	for len(data) > 0 {
 		block.Decrypt(tmp, data[:blockSize])
@@ -41,12 +45,11 @@ func AesEcbDecrypt(key, src []byte) ([]byte, error) {
 		dst = append(dst, tmp...)
 	}
 
-	res := _PKCS5UnPadding(dst)
-
-	return res, nil
+	res := PKCS5UnPadding(dst)
+	return string(res), nil
 }
 
-func AesCbcEncrypt(key, iv, src []byte) ([]byte, error) {
+func AesCbcEncrypt(key, iv []byte, src string) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
@@ -54,7 +57,7 @@ func AesCbcEncrypt(key, iv, src []byte) ([]byte, error) {
 	blockMode := cipher.NewCBCEncrypter(block, iv)
 
 	blockSize := block.BlockSize()
-	data := _PKCS5Padding(src, blockSize)
+	data := PKCS5Padding([]byte(src), blockSize)
 
 	dst := make([]byte, len(data))
 	blockMode.CryptBlocks(dst, data)
@@ -62,39 +65,33 @@ func AesCbcEncrypt(key, iv, src []byte) ([]byte, error) {
 	return dst, nil
 }
 
-func AesCbcDecrypt(key, iv, src []byte) ([]byte, error) {
+func AesCbcDecrypt(key, iv, src []byte) (string, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	iv = _PKCS5Padding(iv, block.BlockSize())
-	blockMode := cipher.NewCBCDecrypter(block, iv)
 
-	src = _PKCS5Padding(src, block.BlockSize())
+	blockMode := cipher.NewCBCDecrypter(block, iv)
 
 	dst := make([]byte, len(src))
 	blockMode.CryptBlocks(dst, src)
 
-	res := _PKCS5UnPadding(dst)
-	return res, nil
+	res := PKCS5UnPadding(dst)
+	return string(res), nil
 }
 
-func _PKCS5Padding(data []byte, blockSize int) []byte {
-	paddingNumber := len(data) % blockSize
-	if paddingNumber == 0 {
-		return data
-	}
-	padding := blockSize - paddingNumber
+func PKCS5Padding(data []byte, blockSize int) []byte {
+	padding := blockSize - len(data)%blockSize
 	padtext := bytes.Repeat([]byte{byte(padding)}, padding)
 	return append(data, padtext...)
 }
 
-func _PKCS5UnPadding(data []byte) []byte {
+func PKCS5UnPadding(data []byte) []byte {
 	length := len(data)
 	unpadding := int(data[length-1])
 	datalen := length - unpadding
 	if datalen < 0 || datalen > len(data) {
-		return []byte{}
+		return nil
 	}
 	return data[:datalen]
 }

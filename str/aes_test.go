@@ -5,9 +5,13 @@ import (
 	"github.com/mapleque/kelp/str"
 )
 
-func Example_aesEcb() {
+const (
+	encodingKey = "bVpxYlg0MzNNN05XQ3ZYY09nUGJGR1JtRENVbDh2a24="
+	encodingIv  = "AAAAAAAAAAAAAAAAAAAAAA=="
+)
+
+func Example_aesecb() {
 	data := "Hello kelp aes ecb!"
-	encodingKey := "bVpxYlg0MzNNN05XQ3ZYY09nUGJGR1JtRENVbDh2a24="
 
 	// decode key
 	key := str.Base64Decode(encodingKey)
@@ -29,11 +33,8 @@ func Example_aesEcb() {
 	// target data: Hello kelp aes ecb!
 }
 
-func Example_aesCbc() {
-	//fmt.Println(Base64Encode(make([]byte, 16)))
+func Example_aescbc() {
 	data := "Hello kelp aes cbc!"
-	encodingKey := "bVpxYlg0MzNNN05XQ3ZYY09nUGJGR1JtRENVbDh2a24="
-	encodingIv := "AAAAAAAAAAAAAAAAAAAAAA=="
 
 	// decode key
 	key := str.Base64Decode(encodingKey)

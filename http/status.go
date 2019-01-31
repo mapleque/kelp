@@ -2,6 +2,7 @@ package http
 
 import (
 	"encoding/json"
+	"fmt"
 )
 
 type Status struct {
@@ -10,9 +11,11 @@ type Status struct {
 }
 
 var (
-	STATUS_SUCCESS   = &Status{0, "成功"}
-	STATUS_NOT_FOUND = &Status{1, "404"}
-	STATUS_ERROR_DB  = &Status{2, "数据库错误"}
+	STATUS_SUCCESS    = &Status{0, "成功"}
+	STATUS_UNKNOW     = &Status{1, "未知错误"}
+	STATUS_ERROR_DB   = &Status{2, "数据库错误"}
+	STATUS_NEED_LOGIN = &Status{403, "need login"}
+	STATUS_NOT_FOUND  = &Status{404, "not found"}
 )
 
 func StatusInvalidParam(err error) *Status {
@@ -26,4 +29,8 @@ func ErrorStatus(code int, err error) *Status {
 func JsonStatus(code int, obj interface{}) *Status {
 	msg, _ := json.Marshal(obj)
 	return &Status{code, string(msg)}
+}
+
+func (this *Status) Error() string {
+	return fmt.Sprintf("%d:%v", this.Status, this.Message)
 }

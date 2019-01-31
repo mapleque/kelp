@@ -121,6 +121,7 @@ func (this *Context) Redirect(status int, location string) {
 	if status < 300 || status > 308 {
 		status = 302
 	}
+	this.RedirectLocation = location
 	this.HttpStatus = status
 	this.ContentType = "text/plain;charset=UTF-8"
 }

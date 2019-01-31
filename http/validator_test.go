@@ -132,7 +132,7 @@ type structForTestBind struct {
 }
 
 type structSubForTestBind struct {
-	d int `json:"d" valid:"message=invalid d in sub"`
+	D int `json:"d" valid:"message=invalid d in sub"`
 }
 
 func TestBindAndValidJson(t *testing.T) {

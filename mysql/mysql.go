@@ -5,12 +5,13 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	_ "github.com/go-sql-driver/mysql"
 	"math/rand"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 var (
@@ -39,16 +40,68 @@ func AddDB(name, dsn string, maxOpen, maxIdle int) error {
 	if err := conn.Ping(); err != nil {
 		return err
 	}
-	p.store[name] = &db{name: name, conn: conn}
+	conn.SetMaxOpenConns(maxOpen)
+	conn.SetMaxIdleConns(maxIdle)
+	pool.pool[name] = &db{name: name, conn: conn}
 	return nil
 }
 
-// Begin start an transaction
+func (this *db) begin() (*sql.Tx, error) {
+	conn, err := this.conn.Begin()
+	if err != nil {
+		// retry once on error
+		log.Warn("retry begin on", err)
+		return this.conn.Begin()
+	}
+	return conn, nil
+}
+
+func (this *db) prepare(query string) (*sql.Stmt, error) {
+	stmt, err := this.conn.Prepare(query)
+	if err != nil {
+		// retry once on error
+		log.Warn("retry prepare on", err)
+		return this.conn.Prepare(query)
+	}
+	return stmt, nil
+}
+
+func (this *db) exec(query string, args ...interface{}) (sql.Result, error) {
+	ret, err := this.conn.Exec(query, args...)
+	if err != nil {
+		// retry once on error
+		log.Warn("retry exec on", err)
+		return this.conn.Exec(query, args...)
+	}
+	return ret, nil
+}
+
+func (this *tx) prepare(query string) (*sql.Stmt, error) {
+	stmt, err := this.conn.Prepare(query)
+	if err != nil {
+		// retry once on error
+		log.Warn("retry prepare on", err)
+		return this.conn.Prepare(query)
+	}
+	return stmt, nil
+}
+
+func (this *tx) exec(query string, args ...interface{}) (sql.Result, error) {
+	ret, err := this.conn.Exec(query, args...)
+	if err != nil {
+		// retry once on error
+		log.Warn("retry exec on", err)
+		return this.conn.Exec(query, args...)
+	}
+	return ret, nil
+}
+
 func (this *db) Begin() (Connector, error) {
 	name := this.name + "-" + token()
 	log.Debug(this.name, "begin", name)
-	conn, err := this.conn.Begin()
+	conn, err := this.begin()
 	if err != nil {
+		log.Error(this.name, "begin", err)
 		return nil, err
 	}
 	tx := &tx{name: name, conn: conn}
@@ -61,7 +114,7 @@ func (this *db) Commit() error {
 	return METHOD_NOT_ALLOW
 }
 
-// Rollback is not allow to qurey connector.
+// Rollback is not allow to qurey connector
 func (this *db) Rollback() error {
 	log.Error(this.name, "rollback", METHOD_NOT_ALLOW)
 	return METHOD_NOT_ALLOW
@@ -71,52 +124,78 @@ func (this *db) Rollback() error {
 // The destList should be an pointor of slice assembled by data model.
 func (this *db) Query(destList interface{}, sql string, params ...interface{}) error {
 	log.Debug(this.name, "query", sql, params)
-	stmt, err := this.conn.Prepare(sql)
+	stmt, err := this.prepare(sql)
 	if err != nil {
+		log.Error(this.name, "query", err)
 		return err
 	}
 	defer stmt.Close()
 	rows, err := stmt.Query(params...)
 	if err != nil {
+		log.Error(this.name, "query", err)
 		return err
 	}
-	return scanQueryRows(destList, rows)
+	if err := scanQueryRows(destList, rows); err != nil {
+		log.Error(this.name, "query", err)
+		return err
+	}
+	return nil
 }
 
 // QueryOne select one data and bind into a dest object.
 // The destOjbect should be an pointer of data model.
 func (this *db) QueryOne(destObject interface{}, sql string, params ...interface{}) error {
 	log.Debug(this.name, "queryone", sql, params)
-	stmt, err := this.conn.Prepare(sql)
+	stmt, err := this.prepare(sql)
 	if err != nil {
+		log.Error(this.name, "queryone", err)
 		return err
 	}
 	defer stmt.Close()
 	rows, err := stmt.Query(params...)
 	if err != nil {
+		log.Error(this.name, "queryone", err)
 		return err
 	}
-	return scanQueryOne(destObject, rows)
+	if err := scanQueryOne(destObject, rows); err != nil {
+		if err != NO_DATA_TO_BIND {
+			log.Error(this.name, "queryone", err)
+		}
+		return err
+	}
+	return nil
 }
 
 // Insert executes an insert sql and returns last insert id.
 func (this *db) Insert(sql string, params ...interface{}) (int64, error) {
 	log.Debug(this.name, "insert", sql, params)
-	ret, err := this.conn.Exec(sql, params...)
+	ret, err := this.exec(sql, params...)
 	if err != nil {
+		log.Error(this.name, "insert", err)
 		return 0, err
 	}
-	return ret.LastInsertId()
+	lastId, err := ret.LastInsertId()
+	if err != nil {
+		log.Error(this.name, "insert", err)
+		return 0, err
+	}
+	return lastId, nil
 }
 
 // Execute executes a sql and returns effected rows.
 func (this *db) Execute(sql string, params ...interface{}) (int64, error) {
 	log.Debug(this.name, "execute", sql, params)
-	ret, err := this.conn.Exec(sql, params...)
+	ret, err := this.exec(sql, params...)
 	if err != nil {
+		log.Error(this.name, "execute", err)
 		return 0, err
 	}
-	return ret.RowsAffected()
+	eff, err := ret.RowsAffected()
+	if err != nil {
+		log.Error(this.name, "execute", err)
+		return 0, err
+	}
+	return eff, nil
 }
 
 // Begin is not allow to transaction connector.
@@ -128,72 +207,107 @@ func (this *tx) Begin() (Connector, error) {
 // Commit commits a transaction
 func (this *tx) Commit() error {
 	log.Debug(this.name, "commit")
-	return this.conn.Commit()
+	if err := this.conn.Commit(); err != nil {
+		log.Error(this.name, "commit", err)
+		return err
+	}
+	return nil
 }
 
 // Rollback rollback a transaction
 func (this *tx) Rollback() error {
 	log.Debug(this.name, "rollback")
-	return this.conn.Rollback()
+	if err := this.conn.Rollback(); err != nil {
+		log.Error(this.name, "rollback", err)
+		return err
+	}
+	return nil
 }
 
 // Query select a set of data and bind into a dest list.
 // The destList should be an pointor of slice assembled by data model.
 func (this *tx) Query(destList interface{}, sql string, params ...interface{}) error {
 	log.Debug(this.name, "query", sql, params)
-	stmt, err := this.conn.Prepare(sql)
+	stmt, err := this.prepare(sql)
 	if err != nil {
+		log.Error(this.name, "query", err)
 		return err
 	}
 	defer stmt.Close()
 	rows, err := stmt.Query(params...)
 	if err != nil {
+		log.Error(this.name, "query", err)
 		return err
 	}
-	return scanQueryRows(destList, rows)
+	if err := scanQueryRows(destList, rows); err != nil {
+		log.Error(this.name, "query", err)
+		return err
+	}
+	return nil
 }
 
 // QueryOne select one data and bind into a dest object.
 // The destOjbect should be an pointer of data model.
 func (this *tx) QueryOne(destObject interface{}, sql string, params ...interface{}) error {
 	log.Debug(this.name, "queryone", sql, params)
-	stmt, err := this.conn.Prepare(sql)
+	stmt, err := this.prepare(sql)
 	if err != nil {
+		log.Error(this.name, "queryone", err)
 		return err
 	}
 	defer stmt.Close()
 	rows, err := stmt.Query(params...)
 	if err != nil {
+		log.Error(this.name, "queryone", err)
 		return err
 	}
-	return scanQueryOne(destObject, rows)
+	if err := scanQueryOne(destObject, rows); err != nil {
+		if err != NO_DATA_TO_BIND {
+			log.Error(this.name, "queryone", err)
+		}
+		return err
+	}
+	return nil
 }
 
 // Insert executes an insert sql and returns last insert id.
 func (this *tx) Insert(sql string, params ...interface{}) (lastInsertId int64, err error) {
 	log.Debug(this.name, "insert", sql, params)
-	ret, err := this.conn.Exec(sql, params...)
+	ret, err := this.exec(sql, params...)
 	if err != nil {
+		log.Error(this.name, "insert", err)
 		return 0, err
 	}
-	return ret.LastInsertId()
+	lastId, err := ret.LastInsertId()
+	if err != nil {
+		log.Error(this.name, "insert", err)
+		return 0, err
+	}
+	return lastId, nil
 }
 
 // Execute executes a sql and returns effected rows.
 func (this *tx) Execute(sql string, params ...interface{}) (int64, error) {
 	log.Debug(this.name, "execute", sql, params)
-	ret, err := this.conn.Exec(sql, params...)
+	ret, err := this.exec(sql, params...)
 	if err != nil {
+		log.Error(this.name, "execute", err)
 		return 0, err
 	}
-	return ret.RowsAffected()
+	eff, err := ret.RowsAffected()
+	if err != nil {
+		log.Error(this.name, "execute", err)
+		return 0, err
+	}
+	return eff, nil
 }
 
 func scanQueryRows(dest interface{}, rows *sql.Rows) error {
+	defer rows.Close()
 	// dest 必须是 ptr
 	destType := reflect.TypeOf(dest)
 	if destType.Kind() != reflect.Ptr {
-		return fmt.Errorf("kelp.db.mysql: dest should be a ptr but %s", destType.Kind())
+		return fmt.Errorf("kelp.db.mysql: dest should be a ptr but %s %s", destType.Kind(), destType)
 	}
 	destValue := reflect.ValueOf(dest).Elem()
 	if !destValue.CanSet() {
@@ -203,7 +317,7 @@ func scanQueryRows(dest interface{}, rows *sql.Rows) error {
 
 	// list必须是slice
 	if listType.Kind() != reflect.Slice {
-		return fmt.Errorf("kelp.db.mysql: target should be a slice but %s", listType.Kind())
+		return fmt.Errorf("kelp.db.mysql: target should be a slice but %s %s", listType.Kind(), listType)
 	}
 	// 获取list的元素类型
 	eleType := listType.Elem()
@@ -295,33 +409,36 @@ func scanQueryRows(dest interface{}, rows *sql.Rows) error {
 
 func scanQueryOne(dest interface{}, rows *sql.Rows) error {
 	defer rows.Close()
-	// dest 必须是 ptr
-	destType := reflect.TypeOf(dest)
-	if destType.Kind() != reflect.Ptr {
-		return fmt.Errorf("kelp.db.mysql: dest should be a ptr but %s", destType.Kind())
-	}
-	destValue := reflect.ValueOf(dest).Elem()
-	if !destValue.CanSet() {
-		return fmt.Errorf("kelp.db.mysql: dest can not set")
-	}
-	eleType := destType.Elem()
-	// 必须要是struct类型
-	if eleType.Kind() != reflect.Struct {
-		return fmt.Errorf("kelp.db.mysql: target should be a *struct but *%s", eleType.Kind())
-	}
-	// 遍历查询结果
-	columnTypes, err := rows.ColumnTypes()
-	if err != nil {
-		return err
-	}
-	values := make([]interface{}, len(columnTypes))
-	scanArgs := make([]interface{}, len(values))
-	for i := range values {
-		scanArgs[i] = &values[i]
-	}
-	// 新建一个元素实例
-	ele := destValue
 	if rows.Next() {
+		if dest == nil {
+			return nil
+		}
+		// dest 必须是 ptr
+		destType := reflect.TypeOf(dest)
+		if destType.Kind() != reflect.Ptr {
+			return fmt.Errorf("kelp.db.mysql: dest should be a ptr but %s", destType.Kind())
+		}
+		destValue := reflect.ValueOf(dest).Elem()
+		if !destValue.CanSet() {
+			return fmt.Errorf("kelp.db.mysql: dest can not set")
+		}
+		eleType := destType.Elem()
+		// 必须要是struct类型
+		if eleType.Kind() != reflect.Struct {
+			return fmt.Errorf("kelp.db.mysql: target should be a *struct but *%s", eleType.Kind())
+		}
+		// 遍历查询结果
+		columnTypes, err := rows.ColumnTypes()
+		if err != nil {
+			return err
+		}
+		values := make([]interface{}, len(columnTypes))
+		scanArgs := make([]interface{}, len(values))
+		for i := range values {
+			scanArgs[i] = &values[i]
+		}
+		// 新建一个元素实例
+		ele := destValue
 		err = rows.Scan(scanArgs...)
 		if err != nil {
 			return err
@@ -346,6 +463,8 @@ func scanQueryOne(dest interface{}, rows *sql.Rows) error {
 						switch field.Type.Kind() {
 						case reflect.Int:
 							eleField.Set(reflect.ValueOf(ToInt(col)))
+						case reflect.Int64:
+							eleField.Set(reflect.ValueOf(ToInt64(col)))
 						case reflect.Float64:
 							eleField.Set(reflect.ValueOf(ToFloat(col)))
 						case reflect.String:
@@ -367,13 +486,14 @@ func scanQueryOne(dest interface{}, rows *sql.Rows) error {
 	} else {
 		return NO_DATA_TO_BIND
 	}
-	if err = rows.Err(); err != nil {
+
+	if err := rows.Err(); err != nil {
 		return err
 	}
 	return nil
 }
 
-// ToInt convert type to int
+// 类型转换，任何类型转成int
 func ToInt(param interface{}) int {
 	switch ret := param.(type) {
 	case int:
@@ -401,7 +521,7 @@ func ToInt(param interface{}) int {
 	}
 }
 
-// ToInt64 convert type to int64
+// 类型转换，任何类型转成int64
 func ToInt64(param interface{}) int64 {
 	switch ret := param.(type) {
 	case int:
@@ -422,6 +542,8 @@ func ToInt64(param interface{}) int64 {
 		} else {
 			return 0
 		}
+	case time.Time:
+		return ret.UnixNano() / 1000000
 	case nil:
 		return 0
 	default:
@@ -429,10 +551,12 @@ func ToInt64(param interface{}) int64 {
 	}
 }
 
-// ToFloat convert type to float64
+// 类型转换，类型转换成float
 func ToFloat(param interface{}) float64 {
 	switch ret := param.(type) {
 	case int64:
+		return float64(ret)
+	case float32:
 		return float64(ret)
 	case float64:
 		return ret
@@ -455,7 +579,7 @@ func ToFloat(param interface{}) float64 {
 	}
 }
 
-// ToBool convert type to bool
+// 类型转换，任何类型转成bool
 func ToBool(param interface{}) bool {
 	switch ret := param.(type) {
 	case bool:
@@ -497,7 +621,7 @@ func ToBool(param interface{}) bool {
 	}
 }
 
-// ToString convert type to string
+// 类型转换，任何类型转成string
 func ToString(param interface{}) string {
 	switch ret := param.(type) {
 	case string:

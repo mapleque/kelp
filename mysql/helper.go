@@ -145,7 +145,7 @@ func (this *Sorter) Add(sorter SorterElement) {
 	if sorter.GetReverse() {
 		sql += " DESC"
 	} else {
-		sql += " AES"
+		sql += " ASC"
 	}
 	this.sqls = append(this.sqls, sql)
 }
@@ -158,8 +158,8 @@ func (this *Sorter) Sql() string {
 }
 
 type Pager struct {
-	size   int64
-	offset int64
+	Size   int64 `json:"size"`
+	Offset int64 `json:"offset"`
 }
 
 func NewPager() *Pager {
@@ -167,14 +167,14 @@ func NewPager() *Pager {
 }
 
 func (this *Pager) Add(pager PagerElement) {
-	this.size = pager.GetSize()
-	this.offset = pager.GetOffset()
+	this.Size = pager.GetSize()
+	this.Offset = pager.GetOffset()
 }
 
 func (this *Pager) Sql() string {
-	if this.size <= 0 {
+	if this.Size <= 0 {
 		return ""
 	}
-	return " LIMIT " + strconv.FormatInt(this.size, 10) +
-		" OFFSET " + strconv.FormatInt(this.offset, 10)
+	return " LIMIT " + strconv.FormatInt(this.Size, 10) +
+		" OFFSET " + strconv.FormatInt(this.Offset, 10)
 }

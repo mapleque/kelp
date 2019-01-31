@@ -178,7 +178,3 @@ func (this *Pager) Sql() string {
 	return " LIMIT " + strconv.FormatInt(this.Size, 10) +
 		" OFFSET " + strconv.FormatInt(this.Offset, 10)
 }
-
-type Count struct {
-	Total int `json:"total"`
-}

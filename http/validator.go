@@ -459,7 +459,6 @@ func BindAndValidJson(dest interface{}, data []byte) error {
 		default:
 			return fmt.Errorf("invalid json %s with error %v", string(data), err)
 		}
-		return fmt.Errorf("invalid json %s with error %v", string(data), err)
 	}
 	return Valid(dest, data)
 }

@@ -67,7 +67,7 @@ func TestSorter(t *testing.T) {
 	sorter = NewSorter()
 	sorter.Add(&SorterForTest{"field1", true})
 	sorter.Add(&SorterForTest{"field2", false})
-	if sorter.Sql() != " ORDER BY field1 DESC, field2 AES" {
+	if sorter.Sql() != " ORDER BY field1 DESC, field2 ASC" {
 		t.Error("wrong sorter sql", sorter.Sql())
 	}
 }

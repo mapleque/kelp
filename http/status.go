@@ -11,15 +11,21 @@ type Status struct {
 }
 
 var (
-	STATUS_SUCCESS    = &Status{0, "成功"}
-	STATUS_UNKNOW     = &Status{1, "未知错误"}
-	STATUS_ERROR_DB   = &Status{2, "数据库错误"}
-	STATUS_NEED_LOGIN = &Status{403, "need login"}
-	STATUS_NOT_FOUND  = &Status{404, "not found"}
+	STATUS_SUCCESS      = &Status{0, "成功"}
+	STATUS_UNKNOW       = &Status{1, "未知错误"}
+	STATUS_ERROR_DB     = &Status{2, "数据库错误"}
+	STATUS_UNAUTHORIZED = &Status{401, "unauthorized"}
+	STATUS_FORBIDDEN    = &Status{403, "forbidden"}
+	STATUS_NOT_FOUND    = &Status{404, "not found"}
 )
 
 func StatusInvalidParam(err error) *Status {
 	return &Status{3, err.Error()}
+}
+
+func StatusDiy(obj interface{}) *Status {
+	msg, _ := json.Marshal(obj)
+	return &Status{10, string(msg)}
 }
 
 func ErrorStatus(code int, err error) *Status {

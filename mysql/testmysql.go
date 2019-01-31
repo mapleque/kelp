@@ -15,37 +15,37 @@ func NewTestDB() *TestDB {
 }
 
 func (this *TestDB) Begin() (Connector, error) {
-	log.Info("begin a transaction")
+	log.Debug("begin a transaction")
 	return this, nil
 }
 func (this *TestDB) Commit() error {
-	log.Info("commit a transaction")
+	log.Debug("commit a transaction")
 	return nil
 }
 func (this *TestDB) Rollback() error {
-	log.Info("rollback a transation")
+	log.Debug("rollback a transation")
 	return nil
 }
 func (this *TestDB) Query(destList interface{}, sql string, params ...interface{}) error {
-	log.Info("do query", sql, params)
+	log.Debug("do query", sql, params)
 	return nil
 }
 func (this *TestDB) QueryOne(destObject interface{}, sql string, params ...interface{}) error {
-	log.Info("do query one", sql, params)
+	log.Debug("do query one", sql, params)
 	return nil
 }
 func (this *TestDB) Insert(sql string, params ...interface{}) (int64, error) {
-	log.Info("do insert", sql, params)
+	log.Debug("do insert", sql, params)
 	return 1, nil
 }
 func (this *TestDB) Execute(sql string, params ...interface{}) (int64, error) {
-	log.Info("do execute", sql, params)
+	log.Debug("do execute", sql, params)
 	return 1, nil
 }
 
 // InitTestDB is a mysql helper used for build a test database with sql schema.
 // This usually used in unittest to initial a test database with service's table created.
-func InitTestDB(name, dsn, schemaDir string) {
+func InitTestDB(name, dsn, sourceDirs string) {
 	if err := AddDB(
 		name,
 		dsn,
@@ -54,7 +54,20 @@ func InitTestDB(name, dsn, schemaDir string) {
 	); err != nil {
 		panic(err)
 	}
-	sqlDir, err := ioutil.ReadDir(schemaDir)
+	for _, dir := range strings.FieldsFunc(sourceDirs, func(r rune) bool {
+		switch r {
+		case ':', ';':
+			return true
+		}
+		return false
+	}) {
+		log.Debug("source dir", name, dir)
+		sourceSqlFiles(name, dir)
+	}
+}
+
+func sourceSqlFiles(dbname, dir string) {
+	sqlDir, err := ioutil.ReadDir(dir)
 	if err != nil {
 		panic(err)
 	}
@@ -62,15 +75,15 @@ func InitTestDB(name, dsn, schemaDir string) {
 		if fi.IsDir() {
 			continue
 		}
-		if strings.HasSuffix(strings.ToUpper(fi.Name()), "SQL") {
-			sqlfile := schemaDir + string(os.PathSeparator) + fi.Name()
-			schemaSql, err := ioutil.ReadFile(sqlfile)
+		if strings.HasSuffix(strings.ToUpper(fi.Name()), ".SQL") {
+			sqlfile := dir + string(os.PathSeparator) + fi.Name()
+			sourceSql, err := ioutil.ReadFile(sqlfile)
 			if err != nil {
 				panic(err)
 			}
-			for _, sql := range strings.Split(string(schemaSql), ";") {
+			for _, sql := range strings.Split(string(sourceSql), ";") {
 				if len(strings.TrimSpace(sql)) > 0 {
-					if _, err := Get(name).Execute(sql); err != nil {
+					if _, err := Get(dbname).Execute(sql); err != nil {
 						panic(err)
 					}
 				}

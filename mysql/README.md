@@ -29,12 +29,12 @@ mysql.AddDB(
     1, // max idle connection
 )
 
-conn := mysql.GetConnector("db1")
+conn := mysql.Get("db1")
 
 ```
 
 在一个服务内，可以多次调用`AddDB`方法初始化多个数据库，这样每个数据库都有独立的连接池，且不互相影响。
-在使用时通过调用`GetCOnnector`方法即可获得对应数据库的连接。
+在使用时通过调用`Get`方法即可获得对应数据库的连接。
 
 Api
 ----

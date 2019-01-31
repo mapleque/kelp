@@ -42,7 +42,7 @@ func AddDB(name, dsn string, maxOpen, maxIdle int) error {
 	}
 	conn.SetMaxOpenConns(maxOpen)
 	conn.SetMaxIdleConns(maxIdle)
-	pool.pool[name] = &db{name: name, conn: conn}
+	p.store[name] = &db{name: name, conn: conn}
 	return nil
 }
 

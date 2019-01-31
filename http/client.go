@@ -27,7 +27,7 @@ func NewClient(host string) *Client {
 // The response body has been read out, while others are in resp.
 func Request(url, method string, body []byte) (*http.Response, []byte, error) {
 	client := NewClient(url)
-	client.SetTimeout(2 * time.Second)
+	client.SetTimeout(10 * time.Second)
 	req, err := client.BuildRequest("", method, body)
 	if err != nil {
 		return nil, nil, err
@@ -96,16 +96,16 @@ type KelpClient struct {
 // NewKelpClient Create a KelpClient.
 // The param token will be put into http header Authorization, which server may required.
 // If the token is empty, there will no Authorization header.
-// Default timeout is 2s.
+// Default timeout is 10s.
 func NewKelpClient(host, token string) *KelpClient {
 	client := &KelpClient{}
 	client.host = host
 	client.token = token
-	client.timeout = 2 * time.Second
+	client.timeout = 10 * time.Second
 	return client
 }
 
-// RequestKelp Send a request to a kelp server. Default timeout is 2s.
+// RequestKelp Send a request to a kelp server. Default timeout is 10s.
 // The param token will be put into http header Authorization, which server may required.
 // If the token is empty, there will no Authorization header.
 // The param in is same as the handler param in, which define in the server.
@@ -114,7 +114,7 @@ func NewKelpClient(host, token string) *KelpClient {
 // The response status is not nil when the server returns an error status.
 func RequestKelp(url, token string, in interface{}, out interface{}, lastContext *Context) (*Status, error) {
 	client := NewKelpClient(url, token)
-	client.SetTimeout(2 * time.Second)
+	client.SetTimeout(10 * time.Second)
 	return client.RequestKelp("", in, out, lastContext)
 }
 
